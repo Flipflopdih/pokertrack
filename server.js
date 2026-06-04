@@ -130,13 +130,14 @@ function mkStat(startChips) {
 }
 
 // ── ROOM CREATION ──
-function createRoom(hostName, hostSocketId, startChips, sb, bb) {
+function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
   const code = makeCode();
   rooms[code] = {
     code,
     hostId: hostSocketId,
     sb, bb,
     startChips,
+    maxSeats: Math.max(2, Math.min(8, maxSeats || 8)),
     seats: Array(8).fill(null), // 8 seats, null = empty
     // seat: { id, name, socketId, chips, stat, cards, bet, folded, lastAction, seatIndex, curPF }
     dealer: -1, // seat index of dealer
@@ -167,12 +168,24 @@ function seatPlayer(room, seatIndex, name, socketId, chips) {
     stat: mkStat(chips),
     cards: [],
     bet: 0,
+    committed: 0,
     folded: false,
     lastAction: '',
     seatIndex,
     curPF: null,
     connected: true
   };
+}
+
+// Move chips from a player's stack into the pot, tracking total commitment for side pots.
+function commit(room, p, amt) {
+  const pay = Math.min(amt, p.chips);
+  p.chips -= pay; p.bet += pay; p.committed += pay; room.pot += pay;
+  return pay;
+}
+
+function seatOfSocket(room, socketId) {
+  return room.seats.findIndex(s => s && s.socketId === socketId);
 }
 
 function broadcast(room) {
@@ -196,6 +209,8 @@ function buildView(room, socketId) {
     phase: room.phase,
     sb: room.sb,
     bb: room.bb,
+    maxSeats: room.maxSeats,
+    startChips: room.startChips,
     isHost: room.hostId === socketId,
     seats: room.seats.map((s,i) => s ? {
       seatIndex: i,
@@ -228,6 +243,8 @@ function buildPublicView(room) {
     phase: room.phase,
     sb: room.sb,
     bb: room.bb,
+    maxSeats: room.maxSeats,
+    startChips: room.startChips,
     seats: room.seats.map((s,i) => s ? {
       seatIndex: i,
       id: s.id,
@@ -259,13 +276,13 @@ function dealHand(room) {
   room.curBet = room.bb; room.street = 'preflop'; room.over = false;
 
   players.forEach(p => {
-    p.folded = false; p.cards = []; p.bet = 0; p.lastAction = '';
+    p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
     if (p.chips <= 0) p.chips = room.startChips;
   });
 
   // advance dealer to next filled seat
   const filled = room.seats.map((s,i)=>s?i:-1).filter(i=>i>=0);
-  if (room.dealer === -1) {
+  if (room.dealer === -1 || filled.indexOf(room.dealer) === -1) {
     room.dealer = filled[0];
   } else {
     const cur = filled.indexOf(room.dealer);
@@ -283,14 +300,20 @@ function dealHand(room) {
     p.curPF = ps;
   });
 
-  // post blinds — SB and BB are next two seats after dealer
-  const sbIdx = nextSeat(room, room.dealer);
-  const bbIdx = nextSeat(room, sbIdx);
+  // Post blinds. Heads-up: the dealer is the small blind and acts first preflop.
+  let sbIdx, bbIdx, startIdx;
+  if (players.length === 2) {
+    sbIdx = room.dealer;
+    bbIdx = nextSeat(room, room.dealer);
+    startIdx = sbIdx;
+  } else {
+    sbIdx = nextSeat(room, room.dealer);
+    bbIdx = nextSeat(room, sbIdx);
+    startIdx = nextSeat(room, bbIdx); // action starts left of BB
+  }
   postBlind(room, sbIdx, room.sb);
   postBlind(room, bbIdx, room.bb);
 
-  // preflop action starts left of BB
-  const startIdx = nextSeat(room, bbIdx);
   room.queue = buildQueue(room, startIdx);
 
   broadcast(room);
@@ -309,19 +332,19 @@ function nextSeat(room, fromIdx) {
 function postBlind(room, seatIdx, amt) {
   const p = room.seats[seatIdx];
   if (!p) return;
-  const pay = Math.min(amt, p.chips);
-  p.chips -= pay; p.bet += pay; room.pot += pay;
+  const pay = commit(room, p, amt);
   p.lastAction = 'Blind ' + pay;
 }
 
-function buildQueue(room, startSeatIdx) {
-  // Build ordered list of active (non-folded) seat indexes starting from startSeatIdx
+function buildQueue(room, startSeatIdx, excludeIdx) {
+  // Ordered list of seats that still need to act, starting from startSeatIdx.
+  // Skips folded players, all-in players (no chips) and an optional excluded seat
+  // (the aggressor, who shouldn't act again until re-raised).
   const q = [];
   let idx = startSeatIdx;
-  const filled = filledSeats(room).length;
-  for (let i=0;i<filled;i++) {
+  for (let i=0;i<8;i++) {
     const seat = room.seats[idx];
-    if (seat && !seat.folded) q.push(idx);
+    if (seat && !seat.folded && seat.chips > 0 && idx !== excludeIdx) q.push(idx);
     idx = nextSeat(room, idx);
     if (idx === startSeatIdx) break;
   }
@@ -372,36 +395,38 @@ function applyAction(room, seatIdx, action, raiseAmt) {
     trackGTO(room, p, 'check');
   } else if (action === 'call') {
     if (call === 0) return false;
-    const pay = Math.min(call, p.chips);
-    p.chips -= pay; p.bet += pay; room.pot += pay;
-    p.lastAction = 'Call ' + pay;
+    const pay = commit(room, p, call);
+    p.lastAction = pay < call ? 'All-in ' + p.bet : 'Call ' + pay;
     p.stat.vpip++;
     trackGTO(room, p, 'call');
   } else if (action === 'raise') {
+    if (p.chips <= call) return false; // not enough to raise — must call or go all-in
     const minRaise = room.curBet + room.bb;
     const target = Math.max(raiseAmt || 0, minRaise);
     const extra = Math.min(target - p.bet, p.chips);
     if (extra <= 0) return false;
-    p.chips -= extra; p.bet += extra; room.pot += extra;
+    commit(room, p, extra);
     room.curBet = p.bet;
-    p.lastAction = 'Raise ' + p.bet;
+    p.lastAction = (p.chips === 0 ? 'All-in ' : 'Raise ') + p.bet;
     p.stat.vpip++;
     trackGTO(room, p, 'raise');
-    // Everyone else needs to act again — rebuild queue excluding this player
-    const nextStart = nextSeat(room, seatIdx);
-    room.queue = buildQueue(room, nextStart);
+    // Everyone else still in needs to act again — rebuild queue excluding the raiser
+    room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);
     return true;
   } else if (action === 'allin') {
-    const extra = p.chips;
-    p.chips = 0; p.bet += extra; room.pot += extra;
-    if (p.bet > room.curBet) room.curBet = p.bet;
+    if (p.chips <= 0) return false;
+    const wasRaise = (p.bet + p.chips) > room.curBet;
+    commit(room, p, p.chips);
     p.lastAction = 'All-in ' + p.bet;
     p.stat.vpip++;
-    if (p.bet > room.curBet) {
-      const nextStart = nextSeat(room, seatIdx);
-      room.queue = buildQueue(room, nextStart);
+    trackGTO(room, p, wasRaise ? 'raise' : 'call');
+    if (wasRaise) {
+      // A real raise — reopen the action for everyone else still holding chips
+      room.curBet = p.bet;
+      room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);
       return true;
     }
+    // All-in for less than (or equal to) the current bet — just a call, no reopen
   }
 
   room.queue.shift();
@@ -437,29 +462,73 @@ function advStreet(room) {
   setTimeout(() => scheduleNext(room), 600);
 }
 
+// Split the pot into side pots based on each player's total commitment, then
+// award each layer to the best eligible (non-folded) hand. Returns a per-player
+// winnings map keyed by seatIndex.
+function settlePots(room) {
+  const totalPot = room.pot;
+  const winnings = {};
+  filledSeats(room).forEach(p => winnings[p.seatIndex] = 0);
+
+  // Build pot layers from the distinct commitment levels.
+  let contrib = filledSeats(room).map(p => ({ p, amt: p.committed })).filter(c => c.amt > 0);
+  const layers = [];
+  while (contrib.length) {
+    const lvl = Math.min(...contrib.map(c => c.amt));
+    let amount = 0;
+    contrib.forEach(c => { amount += lvl; c.amt -= lvl; });
+    const eligible = contrib.filter(c => !c.p.folded).map(c => c.p);
+    layers.push({ amount, eligible });
+    contrib = contrib.filter(c => c.amt > 0);
+  }
+
+  layers.forEach(layer => {
+    if (!layer.amount) return;
+    let recipients = layer.eligible;
+    if (!recipients.length) return; // shouldn't happen, but never burn chips
+    if (recipients.length > 1) {
+      const evals = recipients.map(p => ({ p, ev: evalBest([...p.cards, ...room.board]) }));
+      evals.sort((a,b) => cmpE(b.ev, a.ev));
+      const best = evals[0].ev;
+      recipients = evals.filter(e => cmpE(e.ev, best) === 0).map(e => e.p);
+    }
+    const share = Math.floor(layer.amount / recipients.length);
+    let rem = layer.amount - share * recipients.length;
+    recipients.forEach(w => { w.chips += share; winnings[w.seatIndex] += share; });
+    // odd chip goes to the first eligible seat left of the dealer
+    if (rem > 0) { recipients[0].chips += rem; winnings[recipients[0].seatIndex] += rem; }
+  });
+
+  return { winnings, totalPot };
+}
+
 function endHand(room) {
   room.over = true;
   if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
 
   const active = activePlayers(room);
-  let winner;
+  const showdown = active.length > 1 && room.board.length === 5;
 
-  if (active.length === 1) {
-    winner = active[0];
-  } else {
-    const evals = active.map(p => ({ p, ev: evalBest([...p.cards, ...room.board]) }));
-    evals.sort((a,b) => cmpE(b.ev, a.ev));
-    winner = evals[0].p;
-    // show winning hand name
-    winner.lastAction = evals[0].ev.name;
+  const { winnings } = settlePots(room);
+
+  // Primary winner = whoever collected the most (for the banner + hand name).
+  let winner = null, best = -1;
+  filledSeats(room).forEach(p => {
+    if (winnings[p.seatIndex] > best) { best = winnings[p.seatIndex]; winner = p; }
+  });
+  if (!winner) winner = active[0] || filledSeats(room)[0];
+
+  const winnerCount = filledSeats(room).filter(p => winnings[p.seatIndex] > 0).length;
+  let handName = '';
+  if (showdown && !winner.folded) {
+    handName = evalBest([...winner.cards, ...room.board]).name;
+    winner.lastAction = handName;
   }
+  filledSeats(room).forEach(p => { if (winnings[p.seatIndex] > 0) p.stat.handsWon++; });
 
-  winner.chips += room.pot;
-  winner.stat.handsWon++;
-
-  // ghost wins
+  // ghost wins — folded hands that would have beaten the eventual winner
   filledSeats(room).filter(p=>p.folded).forEach(p => {
-    if (room.board.length >= 3) {
+    if (room.board.length >= 3 && winner && !winner.folded) {
       const ph = evalBest([...p.cards, ...room.board]);
       const wh = evalBest([...winner.cards, ...room.board]);
       if (cmpE(ph, wh) > 0) p.stat.ghostWins++;
@@ -477,10 +546,10 @@ function endHand(room) {
         board: [...room.board],
         pfLabel: p.curPF.label,
         pfPts: p.curPF.pts,
-        won: p === winner,
+        won: winnings[p.seatIndex] > 0,
         folded: p.folded,
-        ghostWin: p.folded && room.board.length>=3 && cmpE(evalBest([...p.cards,...room.board]), evalBest([...winner.cards,...room.board]))>0,
-        winAmt: p === winner ? room.pot : 0
+        ghostWin: p.folded && room.board.length>=3 && winner && !winner.folded && cmpE(evalBest([...p.cards,...room.board]), evalBest([...winner.cards,...room.board]))>0,
+        winAmt: winnings[p.seatIndex] || 0
       });
     }
   });
@@ -490,9 +559,9 @@ function endHand(room) {
   // send hand_over event with winner info
   io.to(room.code).emit('hand_over', {
     winnerId: winner.id,
-    winnerName: winner.name,
+    winnerName: winnerCount > 1 ? 'Split pot' : winner.name,
     pot: room.pot,
-    handName: winner.lastAction,
+    handName,
     seats: room.seats.map((s,i) => s ? {seatIndex:i, name:s.name, cards:s.cards, folded:s.folded} : null)
   });
 
@@ -505,15 +574,17 @@ io.on('connection', socket => {
   let myRoom = null;
   let mySeat = null;
 
-  socket.on('create_room', ({ name, startChips, sb, bb }) => {
-    // validate blinds
-    if (bb < sb*2) bb = sb*2;
-    const code = createRoom(name, socket.id, startChips||1000, sb||10, bb||20);
+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats }) => {
+    name = (name || '').toString().trim().slice(0, 14) || 'Host';
+    startChips = Math.max(1, startChips || 1000);
+    sb = Math.max(1, sb || 10);
+    bb = Math.max(sb * 2, bb || 20); // big blind at least 2x small blind
+    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats);
     myRoom = code;
     socket.join(code);
     const room = getRoom(code);
     // host takes seat 0
-    seatPlayer(room, 0, name, socket.id, startChips||1000);
+    seatPlayer(room, 0, name, socket.id, startChips);
     mySeat = 0;
     socket.emit('room_created', { code, url: '/room/'+code });
     broadcast(room);
@@ -522,8 +593,10 @@ io.on('connection', socket => {
   socket.on('join_room', ({ code, name }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('err', 'Room not found'); return; }
-    // find first empty seat
-    const emptyIdx = room.seats.findIndex(s=>!s);
+    name = (name || '').toString().trim().slice(0, 14) || 'Player';
+    // find first empty seat within the table size
+    let emptyIdx = -1;
+    for (let i = 0; i < room.maxSeats; i++) { if (!room.seats[i]) { emptyIdx = i; break; } }
     if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
     myRoom = room.code;
     mySeat = emptyIdx;
@@ -535,11 +608,26 @@ io.on('connection', socket => {
 
   socket.on('take_seat', ({ code, seatIndex, name }) => {
     const room = getRoom(code);
-    if (!room || room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
+    if (!room) { socket.emit('err', 'Room not found'); return; }
+    if (seatIndex < 0 || seatIndex >= room.maxSeats) return;
+    if (room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
+    // Seats can only be changed between hands.
+    if (room.phase === 'playing' && !room.over) { socket.emit('err', 'Wait for the hand to finish'); return; }
+
+    const existingIdx = seatOfSocket(room, socket.id);
+    if (existingIdx !== -1) {
+      // Move the existing player to the new seat instead of creating a duplicate.
+      const player = room.seats[existingIdx];
+      player.seatIndex = seatIndex;
+      room.seats[seatIndex] = player;
+      room.seats[existingIdx] = null;
+      if (room.dealer === existingIdx) room.dealer = seatIndex;
+    } else {
+      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips);
+    }
     myRoom = room.code;
     mySeat = seatIndex;
     socket.join(room.code);
-    seatPlayer(room, seatIndex, name, socket.id, room.startChips);
     socket.emit('joined_room', { code: room.code, seatIndex });
     broadcast(room);
   });

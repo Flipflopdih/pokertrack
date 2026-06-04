@@ -118,9 +118,14 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .abtn.check{border-color:rgba(46,204,113,.35);color:#2ecc71}.abtn.check:hover{background:rgba(46,204,113,.1)}
 .abtn.raise{border-color:rgba(201,168,76,.35);color:var(--gold)}.abtn.raise:hover{background:rgba(201,168,76,.1)}
 .abtn.allin{border-color:rgba(231,76,60,.5);color:#e74c3c;font-weight:600}
-.raise-wrap{display:flex;align-items:center;gap:6px}
-#rslider{width:100px;accent-color:var(--gold)}
-#rval{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l);min-width:34px;text-align:right}
+.raise-wrap{display:flex;align-items:center;gap:8px}
+.size-btns{display:flex;gap:4px}
+.size-btn{padding:7px 9px;border-radius:7px;border:1px solid rgba(201,168,76,.25);background:rgba(201,168,76,.08);color:var(--gold-l);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
+.size-btn:hover{background:rgba(201,168,76,.18)}
+#rslider{width:110px;accent-color:var(--gold)}
+.rinput{width:66px;padding:8px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.25);border-radius:7px;color:var(--gold-l);font-family:'DM Mono',monospace;font-size:13px;text-align:center}
+.rinput:focus{outline:none;border-color:var(--gold)}
+@media(max-width:640px){.size-btns{display:none}#rslider{width:80px}#abar{gap:5px;padding:9px 8px}.abtn{padding:9px 12px;min-width:62px;font-size:12px}}
 
 /* ── SETTINGS PANEL ── */
 #settings-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
@@ -223,18 +228,24 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
     </div>
     <div id="tab-create">
       <div class="lf"><label>Your name</label><input id="c-name" value="" placeholder="Enter your name" maxlength="14"></div>
+      <div class="lf"><label>Starting chips</label>
+        <input id="c-chips" type="number" min="1" step="50" value="1000" placeholder="1000">
+      </div>
       <div class="lf-row">
-        <div class="lf"><label>Starting chips</label>
-          <select id="c-chips"><option value="500">500</option><option value="1000" selected>1 000</option><option value="2000">2 000</option><option value="5000">5 000</option></select>
+        <div class="lf"><label>Small blind</label>
+          <input id="c-sb" type="number" min="1" value="10" oninput="syncBlinds()">
         </div>
-        <div class="lf"><label>Blinds (SB/BB)</label>
-          <select id="c-blinds">
-            <option value="5/10">5 / 10</option>
-            <option value="10/20" selected>10 / 20</option>
-            <option value="25/50">25 / 50</option>
-            <option value="50/100">50 / 100</option>
-          </select>
+        <div class="lf"><label>Big blind</label>
+          <input id="c-bb" type="number" min="2" value="20">
         </div>
+      </div>
+      <div class="lf"><label>Table size (max players)</label>
+        <select id="c-maxseats">
+          <option value="2">2 players (heads-up)</option>
+          <option value="4">4 players</option>
+          <option value="6">6 players</option>
+          <option value="8" selected>8 players</option>
+        </select>
       </div>
       <button class="btn-gold" onclick="createRoom()">Create table →</button>
       <div class="link-box" id="link-box">
@@ -255,7 +266,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 <div id="s-seats" class="screen">
   <div id="seat-box">
     <h2>Choose your seat</h2>
-    <p class="seat-sub" id="seat-sub">Room <span id="seat-code">—</span> · <span id="seat-players">0</span> / 8 players</p>
+    <p class="seat-sub" id="seat-sub">Room <span id="seat-code">—</span> · <span id="seat-players">0</span> / <span id="seat-max">8</span> players</p>
     <div class="seat-grid" id="seat-grid"></div>
     <div class="waiting-players" id="waiting-msg">Waiting for more players… share the link to invite friends</div>
     <button class="btn-gold" id="btn-start-game" onclick="startGame()">Start game →</button>
@@ -304,13 +315,19 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
   <div id="abar" class="off">
     <button class="abtn fold" onclick="send('fold')">Fold</button>
     <button class="abtn check hidden" id="btn-check" onclick="send('check')">Check</button>
-    <button class="abtn call hidden" id="btn-call" onclick="send('call')">Call 0</button>
-    <div class="raise-wrap">
-      <input type="range" id="rslider" min="20" max="500" step="5" value="40" oninput="document.getElementById('rval').textContent=this.value">
-      <span id="rval">40</span>
-      <button class="abtn raise" onclick="send('raise')">Raise</button>
+    <button class="abtn call hidden" id="btn-call" onclick="send('call')">Call</button>
+    <div class="raise-wrap" id="raise-wrap">
+      <div class="size-btns" id="size-btns">
+        <button class="size-btn" onclick="setSize(0.5)">½ Pot</button>
+        <button class="size-btn" onclick="setSize(0.75)">¾ Pot</button>
+        <button class="size-btn" onclick="setSize(1)">Pot</button>
+        <button class="size-btn" onclick="setSize('max')">Max</button>
+      </div>
+      <input type="range" id="rslider" min="20" max="500" step="5" value="40" oninput="onRaiseInput('slider')">
+      <input type="number" id="rinput" class="rinput" oninput="onRaiseInput('input')">
+      <button class="abtn raise" id="btn-raise" onclick="send('raise')">Raise</button>
     </div>
-    <button class="abtn allin" onclick="send('allin')">All-in</button>
+    <button class="abtn allin" id="btn-allin" onclick="send('allin')">All-in</button>
   </div>
 </div>
 
@@ -329,6 +346,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
       </div>
     </div>
     <div class="sp-note">Big blind must be at least 2× small blind</div>
+    <span class="sp-label">Default starting chips (rebuys)</span>
+    <input class="sp-input" id="sp-start" type="number" min="1" step="50" value="1000">
     <div class="sp-section">
       <h4>Player chip stacks</h4>
       <div id="sp-players"></div>
@@ -375,6 +394,7 @@ function backCard(sz) {
 let socket, roomCode, mySeatIndex, myName, isHost;
 let lastState = null;
 let inviteUrl = '';
+let raiseCtx = null;
 
 // ── SOCKET ──
 function initSocket() {
@@ -455,13 +475,24 @@ function switchTab(t) {
   document.getElementById('tab-join').classList.toggle('hidden', t === 'create');
 }
 
+function syncBlinds() {
+  // keep big blind at least 2x the small blind as the host types
+  const sb = +document.getElementById('c-sb').value || 0;
+  const bbEl = document.getElementById('c-bb');
+  if (+bbEl.value < sb * 2) bbEl.value = sb * 2;
+}
+
 function createRoom() {
   myName = document.getElementById('c-name').value.trim();
   if (!myName) { toast('Enter your name first'); return; }
-  const chips = +document.getElementById('c-chips').value;
-  const parts = document.getElementById('c-blinds').value.split('/');
+  const chips = Math.max(1, +document.getElementById('c-chips').value || 1000);
+  const sb = Math.max(1, +document.getElementById('c-sb').value || 10);
+  let bb = Math.max(2, +document.getElementById('c-bb').value || 20);
+  if (bb < sb * 2) { toast('Big blind must be at least 2× small blind'); return; }
+  if (chips < bb) { toast('Starting chips should be at least one big blind'); return; }
+  const maxSeats = +document.getElementById('c-maxseats').value || 8;
   initSocket();
-  socket.emit('create_room', { name: myName, startChips: chips, sb: +parts[0], bb: +parts[1] });
+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats });
   document.getElementById('p-nameval').textContent = myName;
 }
 
@@ -484,23 +515,26 @@ function copyInvite() {
 function renderSeatChooser(state) {
   const grid = document.getElementById('seat-grid');
   grid.innerHTML = '';
+  const maxSeats = state.maxSeats || (lastState && lastState.maxSeats) || 8;
   let filled = 0;
-  for (let i = 0; i < 8; i++) {
+  const iAmSeated = state.seats && state.seats.some(s => s && s.id === (socket ? socket.id : null));
+  for (let i = 0; i < maxSeats; i++) {
     const s = state.seats ? state.seats[i] : null;
     const btn = document.createElement('div');
     const isMe = s && s.id === (socket ? socket.id : null);
     const taken = !!s;
     if (taken) filled++;
     btn.className = 'seat-btn' + (taken ? (isMe ? ' mine' : ' taken') : '');
-    btn.innerHTML = '<div class="sb-num">Seat ' + (i+1) + '</div>'
+    btn.innerHTML = '<div class="sb-num">Seat ' + (i+1) + (isMe ? ' · You' : '') + '</div>'
       + '<div class="sb-name">' + (s ? s.name : 'Empty') + '</div>'
-      + '<div class="sb-chips">' + (s ? s.chips + ' chips' : '') + '</div>';
+      + '<div class="sb-chips">' + (s ? s.chips + ' chips' : (iAmSeated ? 'Move here' : 'Sit here')) + '</div>';
     if (!taken) {
       btn.onclick = () => chooseSeat(i);
     }
     grid.appendChild(btn);
   }
   document.getElementById('seat-players').textContent = filled;
+  document.getElementById('seat-max').textContent = maxSeats;
   // show start button — use lastState.isHost since state_public doesn't carry it
   const amHost = (lastState && lastState.isHost) || state.isHost || false;
   const startBtn = document.getElementById('btn-start-game');
@@ -529,6 +563,7 @@ function toggleSettings() {
   if (showing && lastState) {
     document.getElementById('sp-sb').value = lastState.sb;
     document.getElementById('sp-bb').value = lastState.bb;
+    if (lastState.startChips) document.getElementById('sp-start').value = lastState.startChips;
     // build player chip editors
     const div = document.getElementById('sp-players');
     div.innerHTML = '';
@@ -551,8 +586,9 @@ function updateSettingsBtn() {
 function saveSettings() {
   const sb = +document.getElementById('sp-sb').value;
   const bb = +document.getElementById('sp-bb').value;
+  const startChips = +document.getElementById('sp-start').value || undefined;
   if (bb < sb * 2) { toast('Big blind must be at least 2× small blind'); return; }
-  socket.emit('update_settings', { code: roomCode, sb, bb });
+  socket.emit('update_settings', { code: roomCode, sb, bb, startChips });
   toggleSettings();
 }
 
@@ -649,13 +685,29 @@ function renderGame(state) {
     // action bar
     if (me.isTurn && !state.over) {
       const call = Math.max(0, state.curBet - me.bet);
-      document.getElementById('btn-check').classList.toggle('hidden', call > 0);
-      document.getElementById('btn-call').classList.toggle('hidden', call === 0);
-      document.getElementById('btn-call').textContent = 'Call ' + call;
-      const minR = Math.max(state.bb * 2, state.curBet + state.bb);
-      const sl = document.getElementById('rslider');
-      sl.min = minR; sl.max = Math.max(minR, me.chips); sl.value = minR;
-      document.getElementById('rval').textContent = minR;
+      const canCheck = call === 0;
+      document.getElementById('btn-check').classList.toggle('hidden', !canCheck);
+      const callBtn = document.getElementById('btn-call');
+      callBtn.classList.toggle('hidden', canCheck);
+      callBtn.textContent = call >= me.chips ? 'Call ' + me.chips + ' (All-in)' : 'Call ' + call;
+
+      // raise / bet controls — only when the player has chips beyond the call
+      const minTotal = Math.max(state.bb, state.curBet + state.bb); // min legal total bet
+      const maxTotal = me.bet + me.chips;                          // all-in total
+      const raiseWrap = document.getElementById('raise-wrap');
+      if (me.chips > call && maxTotal > state.curBet) {
+        raiseWrap.style.display = 'flex';
+        const lo = Math.min(minTotal, maxTotal);
+        const sl = document.getElementById('rslider');
+        sl.min = lo; sl.max = maxTotal; sl.step = Math.max(1, state.sb);
+        if (+sl.value < lo || +sl.value > maxTotal) sl.value = lo;
+        raiseCtx = { pot: state.pot, curBet: state.curBet, bet: me.bet, lo, hi: maxTotal };
+        onRaiseInput('slider');
+      } else {
+        raiseWrap.style.display = 'none';
+        raiseCtx = null;
+      }
+      document.getElementById('btn-allin').style.display = me.chips > 0 ? '' : 'none';
       document.getElementById('abar').classList.remove('off');
     } else {
       document.getElementById('abar').classList.add('off');
@@ -666,6 +718,31 @@ function renderGame(state) {
       lbl.textContent = me.lastAction;
     }
   }
+}
+
+// Keep the slider, number box and Bet/Raise label in sync.
+function onRaiseInput(src) {
+  if (!raiseCtx) return;
+  const sl = document.getElementById('rslider');
+  const inp = document.getElementById('rinput');
+  let v = src === 'input' ? +inp.value : +sl.value;
+  if (isNaN(v)) v = raiseCtx.lo;
+  v = Math.max(raiseCtx.lo, Math.min(raiseCtx.hi, Math.round(v)));
+  sl.value = v;
+  if (src !== 'input' || document.activeElement !== inp) inp.value = v;
+  const isBet = raiseCtx.curBet === 0 || raiseCtx.bet >= raiseCtx.curBet;
+  document.getElementById('btn-raise').textContent = (isBet ? 'Bet ' : 'Raise to ') + v;
+}
+
+// Quick pot-relative sizing buttons.
+function setSize(frac) {
+  if (!raiseCtx) return;
+  let target;
+  if (frac === 'max') target = raiseCtx.hi;
+  else target = raiseCtx.bet + Math.round(frac * raiseCtx.pot);
+  target = Math.max(raiseCtx.lo, Math.min(raiseCtx.hi, target));
+  document.getElementById('rslider').value = target;
+  onRaiseInput('slider');
 }
 
 function send(action) {
