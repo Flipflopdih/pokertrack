@@ -608,7 +608,7 @@ io.on('connection', socket => {
         }, 10000);
       }
     }
-  });
+  });                                          
 
   socket.on('reconnect_room', ({ code, name }) => {
     const room = getRoom(code);
