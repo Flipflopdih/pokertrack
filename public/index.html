@@ -501,16 +501,13 @@ function renderSeatChooser(state) {
     grid.appendChild(btn);
   }
   document.getElementById('seat-players').textContent = filled;
-  // show start button only for host with 2+ players
+  // show start button — use lastState.isHost since state_public doesn't carry it
+  const amHost = (lastState && lastState.isHost) || state.isHost || false;
   const startBtn = document.getElementById('btn-start-game');
-  if (state.isHost && filled >= 2) {
-    startBtn.style.display = 'block';
-  } else {
-    startBtn.style.display = 'none';
-  }
+  startBtn.style.display = (amHost && filled >= 2) ? 'block' : 'none';
   const waitMsg = document.getElementById('waiting-msg');
   waitMsg.textContent = filled < 2 ? 'Waiting for players… share the link to invite friends'
-    : state.isHost ? 'Ready! Click "Start game" when everyone is seated.'
+    : amHost ? 'Ready! Click "Start game" when everyone is seated.'
     : 'Waiting for the host to start the game…';
 }
 
