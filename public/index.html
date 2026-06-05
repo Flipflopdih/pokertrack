@@ -65,30 +65,54 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm:hover{background:rgba(255,255,255,.12)}
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
-#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 16px 150px}
-#table{width:100%;max-width:900px;min-height:480px;background:radial-gradient(ellipse at 50% 45%,var(--felt-mid) 0%,var(--felt) 55%,var(--felt-dark) 100%);border-radius:160px;border:12px solid var(--rail);box-shadow:0 0 0 4px var(--rail-dark),0 30px 80px rgba(0,0,0,.8),inset 0 2px 8px rgba(255,255,255,.04);position:relative;padding:40px 70px 55px}
-#think{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.3);font-style:italic;white-space:nowrap;pointer-events:none;transition:opacity .3s}
+#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
+#table{position:relative;width:100%;max-width:1180px;min-height:600px;margin:0 auto;
+  background:radial-gradient(ellipse 72% 74% at 50% 42%,#1f5236 0%,#173f29 55%,#0c2218 100%);
+  border-radius:300px/180px;border:14px solid #5c3d1e;
+  box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
+  padding:54px 100px 64px}
+#table::before{content:'';position:absolute;inset:20px;border-radius:280px/165px;border:2px solid rgba(201,168,76,.16);pointer-events:none}
+#table-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-185%);font-family:'Playfair Display',serif;font-size:30px;letter-spacing:.05em;color:rgba(201,168,76,.10);pointer-events:none;white-space:nowrap}
+#think{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.4);font-style:italic;white-space:nowrap;pointer-events:none;transition:opacity .3s}
 
 /* SEATS ON TABLE */
-.tseat{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-50%);width:110px}
-.tseat .av{width:44px;height:44px;border-radius:50%;background:#172b1e;border:2px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:rgba(255,255,255,.6);position:relative;transition:border-color .2s,box-shadow .2s}
-.tseat .av.myturn{border-color:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.5)}
-.tseat .av.folded-av{opacity:.3}
-.tseat .av.winner-av{border-color:#2ecc71;box-shadow:0 0 16px rgba(46,204,113,.6);animation:wg .6s ease-in-out 3}
-@keyframes wg{0%,100%{box-shadow:0 0 16px rgba(46,204,113,.6)}50%{box-shadow:0 0 28px rgba(46,204,113,.9)}}
-.tseat .av.you-av{border-color:rgba(201,168,76,.4)}
-.dchip{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--gold);color:#1a1a1a;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.5);pointer-events:none}
-.tseat-name{font-size:11px;font-weight:500;color:#ccc;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:110px;text-align:center}
-.tseat-chips{font-family:'DM Mono',monospace;font-size:10px;color:var(--gold-l)}
-.tseat-cards{display:flex;gap:2px}
-.tseat-act{font-size:9px;padding:2px 6px;border-radius:7px;background:rgba(0,0,0,.6);white-space:nowrap;min-height:13px;text-align:center;max-width:110px;overflow:hidden;text-overflow:ellipsis}
-.tact-fold{color:#e74c3c}.tact-call{color:#3498db}.tact-check{color:#2ecc71}.tact-raise{color:var(--gold)}.tact-blind{color:rgba(255,255,255,.3)}.tact-allin{color:#e74c3c;font-weight:600}
+.tseat{position:absolute;display:flex;flex-direction:column;align-items:center;gap:5px;transform:translate(-50%,-50%);width:132px;z-index:4}
+.tseat .av{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 50% 34%,#244531,#132318);border:2.5px solid rgba(201,168,76,.22);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:rgba(255,255,255,.72);position:relative;transition:border-color .2s,box-shadow .2s;box-shadow:0 5px 14px rgba(0,0,0,.5)}
+.tseat .av.myturn{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.22),0 0 20px rgba(201,168,76,.55)}
+.tseat .av.folded-av{opacity:.34}
+.tseat .av.winner-av{border-color:#2ecc71;box-shadow:0 0 0 3px rgba(46,204,113,.25),0 0 20px rgba(46,204,113,.65);animation:wg .6s ease-in-out 3}
+@keyframes wg{0%,100%{box-shadow:0 0 16px rgba(46,204,113,.6)}50%{box-shadow:0 0 30px rgba(46,204,113,.95)}}
+.tseat .av.you-av{border-color:rgba(201,168,76,.45)}
+.tseat.empty .av{border-style:dashed;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.015);color:rgba(255,255,255,.28);font-size:10px;letter-spacing:.08em;box-shadow:none}
+.tseat.empty .tseat-plate{opacity:.45}
+.dchip{position:absolute;bottom:-4px;right:-4px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#e8cc7a,#c9a84c);color:#2a2410;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);pointer-events:none}
+.tseat-plate{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(8,16,11,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:4px 11px;backdrop-filter:blur(4px);max-width:130px}
+.tseat-name{font-size:12px;font-weight:600;color:#ece4d2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:108px;text-align:center}
+.tseat-chips{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold-l)}
+.tseat-cards{display:flex;gap:3px;margin-top:1px}
+.tseat-act{font-size:9.5px;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,.55);white-space:nowrap;min-height:13px;text-align:center;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.tact-fold{color:#e74c3c}.tact-call{color:#5aa9e6}.tact-check{color:#46d27c}.tact-raise{color:var(--gold-l)}.tact-blind{color:rgba(255,255,255,.4)}.tact-allin{color:#ff6f62;font-weight:600}
+
+/* BET CHIPS on felt */
+.chip{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#f0d896,#c9a84c 70%);border:2px solid #8a6d2a;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);flex-shrink:0}
+.tbet{position:absolute;display:flex;align-items:center;gap:6px;transform:translate(-50%,-50%);background:rgba(8,16,11,.85);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:3px 11px 3px 4px;font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l);white-space:nowrap;z-index:6;box-shadow:0 3px 9px rgba(0,0,0,.5)}
 
 /* COMMUNITY */
-#community{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
-#cboard{display:flex;gap:7px}
-#cpot{font-family:'DM Mono',monospace;font-size:14px;color:var(--gold-l)}
-#cstreet{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.25)}
+#community{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:11px;z-index:3}
+#cboard{display:flex;gap:9px}
+.board-slot{width:64px;height:90px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
+#cpot{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:#f5ead0;background:rgba(8,16,11,.72);border:1px solid rgba(201,168,76,.32);padding:6px 16px;border-radius:22px;box-shadow:0 5px 14px rgba(0,0,0,.5)}
+#cpot:empty{display:none}
+#cstreet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(201,168,76,.5);font-weight:600}
+@media(max-width:760px){
+  #table{min-height:440px;padding:34px 30px 44px;border-width:10px;border-radius:200px/150px}
+  #table::before{inset:14px}
+  #table-logo{font-size:20px}
+  .tseat{width:104px}
+  .tseat .av{width:44px;height:44px;font-size:15px}
+  .lg{width:48px;height:68px}.board-slot{width:48px;height:68px}
+  #table-wrap{padding:14px 10px 150px}
+}
 
 /* PLAYER BOTTOM */
 #p-area{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -99,15 +123,14 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 #p-chipsval{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l)}
 #p-actlbl{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.5);min-height:13px}
 
-/* CARDS */
-.card{border-radius:6px;background:#fff;border:1px solid #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.5);user-select:none;line-height:1}
-.xl{width:76px;height:108px;border-radius:8px}.xl .cr{font-size:23px}.xl .cs{font-size:16px;margin-top:-2px}
-.lg{width:58px;height:82px}.lg .cr{font-size:16px}.lg .cs{font-size:12px;margin-top:-1px}
-.sm{width:38px;height:54px}.sm .cr{font-size:12px}.sm .cs{font-size:9px}
-.xs{width:26px;height:36px;border-radius:3px}.xs .cr{font-size:9px}.xs .cs{font-size:7px}
-.red{color:#c0392b}.blk{color:#1a1a1a}
-.back{background:repeating-linear-gradient(135deg,#1a237e,#1a237e 5px,#283593 5px,#283593 10px);border:2px solid #3949ab}
-.ghost-card{opacity:.3;filter:grayscale(.4)}
+/* CARDS — SVG faces (four-colour luxury deck) */
+.card{position:relative;border-radius:7px;overflow:hidden;box-shadow:0 3px 11px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.06);user-select:none;background:#f6f0e2}
+.card svg{display:block;width:100%;height:100%}
+.xl{width:80px;height:112px;border-radius:9px}
+.lg{width:64px;height:90px;border-radius:8px}
+.sm{width:40px;height:56px}
+.xs{width:28px;height:39px;border-radius:4px}
+.ghost-card{opacity:.32;filter:grayscale(.45)}
 
 /* ACTION BAR — bottom-right, large two-step buttons (PokerNow style) */
 #abar{position:fixed;bottom:18px;right:18px;left:auto;z-index:90;transition:opacity .2s}
@@ -230,6 +253,21 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 </style>
 </head>
 <body>
+<!-- shared SVG assets (gradients + card-back lattice) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="pt-cardg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fffef9"/><stop offset="1" stop-color="#ece2cd"/>
+  </linearGradient>
+  <linearGradient id="pt-backg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#16412f"/><stop offset="1" stop-color="#0a1f16"/>
+  </linearGradient>
+  <pattern id="pt-lattice" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <path d="M4.5 0V9M0 4.5H9" stroke="rgba(201,168,76,.20)" stroke-width="1"/>
+  </pattern>
+  <radialGradient id="pt-felt" cx="50%" cy="42%" r="72%">
+    <stop offset="0" stop-color="#1f5236"/><stop offset="55%" stop-color="#173f29"/><stop offset="100%" stop-color="#0d2419"/>
+  </radialGradient>
+</defs></svg>
 <div id="toast"></div>
 
 <!-- ── LOBBY ── -->
@@ -308,7 +346,9 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
   </div>
   <div id="table-wrap">
     <div id="table">
+      <div id="table-logo">♠ PokerTrack</div>
       <div id="think"></div>
+      <div id="tbets"></div>
       <div id="tseats"></div>
       <div id="community">
         <div id="cstreet"></div>
@@ -396,22 +436,42 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 </div>
 
 <script>
-// ── CARD DISPLAY ──
-const SC = {s:'blk',c:'blk',h:'red',d:'red'};
+// ── CARD DISPLAY (SVG, four-colour deck) ──
 const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
+const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
 
+function cardFaceSVG(c) {
+  const col = SUIT_COL[c.s], g = SYM[c.s], r = c.r;
+  const rf = r === 'T' ? 17 : 21;
+  const idx = a => '<text x="11" y="22" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="700" font-size="' + rf + '" fill="' + col + '">' + r + '</text>'
+    + '<text x="11" y="35" text-anchor="middle" font-size="12" fill="' + col + '">' + g + '</text>';
+  return '<svg viewBox="0 0 70 98">'
+    + '<rect x="1.5" y="1.5" width="67" height="95" rx="7" fill="url(#pt-cardg)" stroke="rgba(20,20,20,.16)" stroke-width="1"/>'
+    + idx()
+    + '<text x="35" y="64" text-anchor="middle" font-size="42" fill="' + col + '" opacity=".92">' + g + '</text>'
+    + '<g transform="rotate(180 35 49)">' + idx() + '</g>'
+    + '</svg>';
+}
+function backFaceSVG() {
+  return '<svg viewBox="0 0 70 98">'
+    + '<rect x="1.5" y="1.5" width="67" height="95" rx="7" fill="url(#pt-backg)"/>'
+    + '<rect x="5" y="5" width="60" height="88" rx="5" fill="url(#pt-lattice)" stroke="rgba(201,168,76,.55)" stroke-width="1.1"/>'
+    + '<text x="35" y="57" text-anchor="middle" font-size="24" fill="rgba(201,168,76,.85)">♠</text>'
+    + '</svg>';
+}
 function cardEl(c, sz) {
   const d = document.createElement('div');
-  d.className = 'card ' + SC[c.s] + ' ' + sz;
-  d.innerHTML = '<div class="cr">' + c.r + '</div><div class="cs">' + SYM[c.s] + '</div>';
+  d.className = 'card ' + sz;
+  d.innerHTML = c ? cardFaceSVG(c) : backFaceSVG();
   return d;
 }
 function cardHTML(c, sz) {
-  return '<div class="card ' + SC[c.s] + ' ' + sz + '"><div class="cr">' + c.r + '</div><div class="cs">' + SYM[c.s] + '</div></div>';
+  return '<div class="card ' + sz + '">' + (c ? cardFaceSVG(c) : backFaceSVG()) + '</div>';
 }
 function backCard(sz) {
   const d = document.createElement('div');
-  d.className = 'card back ' + sz;
+  d.className = 'card ' + sz;
+  d.innerHTML = backFaceSVG();
   return d;
 }
 
@@ -636,6 +696,26 @@ const SEAT_POS = [
   {x:'21%', y:'24%'},  // seat 7 — top left
 ];
 
+function actClass(t) {
+  return t.startsWith('Fold') ? 'tact-fold'
+    : t.startsWith('Raise') ? 'tact-raise'
+    : t.startsWith('Call') ? 'tact-call'
+    : t.startsWith('Check') ? 'tact-check'
+    : t.startsWith('Blind') ? 'tact-blind'
+    : t.startsWith('All') ? 'tact-allin' : '';
+}
+
+// A chip-stack bet marker, placed ~42% of the way from a seat toward the pot.
+function betChip(pos, center, amt) {
+  const px = parseFloat(pos.x), py = parseFloat(pos.y);
+  const d = document.createElement('div');
+  d.className = 'tbet';
+  d.style.left = (px + (center.x - px) * 0.42) + '%';
+  d.style.top = (py + (center.y - py) * 0.42) + '%';
+  d.innerHTML = '<span class="chip"></span>' + amt;
+  return d;
+}
+
 function renderGame(state) {
   document.getElementById('tb-hand').textContent = 'Hand #' + state.handNum;
   document.getElementById('tb-code').textContent = state.code || roomCode;
@@ -645,54 +725,61 @@ function renderGame(state) {
   bc.innerHTML = '';
   for (let i = 0; i < 5; i++) {
     if (i < state.board.length) bc.appendChild(cardEl(state.board[i], 'lg'));
-    else { const ph = document.createElement('div'); ph.style.cssText='width:58px;height:82px;border-radius:6px;border:1.5px dashed rgba(255,255,255,.1);background:rgba(255,255,255,.02)'; bc.appendChild(ph); }
+    else { const ph = document.createElement('div'); ph.className='board-slot'; bc.appendChild(ph); }
   }
-  document.getElementById('cpot').textContent = state.pot > 0 ? 'Pot: ' + state.pot : '';
+  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="chip"></span>' + state.pot : '';
   document.getElementById('cstreet').textContent = state.street ? state.street.toUpperCase() : '';
 
   const me = state.seats.find(s => s && s.isYou);
+  const maxSeats = state.maxSeats || 8;
+  const center = { x: 50, y: 46 };
 
-  // Render seats
+  // Render seats — occupied players + faint placeholders to fill the table
   const wrap = document.getElementById('tseats');
+  const betWrap = document.getElementById('tbets');
   wrap.innerHTML = '';
-  state.seats.forEach((s, i) => {
-    if (!s) return;
-    if (s.isYou) return; // you render at bottom
+  betWrap.innerHTML = '';
 
-    const pos = SEAT_POS[i];
+  for (let i = 0; i < maxSeats; i++) {
+    const s = state.seats[i];
+    if (s && s.isYou) continue; // hero renders at the bottom
+    const pos = SEAT_POS[i] || SEAT_POS[0];
     const seat = document.createElement('div');
-    seat.className = 'tseat';
     seat.style.left = pos.x;
     seat.style.top = pos.y;
 
+    if (!s) {
+      seat.className = 'tseat empty';
+      seat.innerHTML = '<div class="av">SIT</div>'
+        + '<div class="tseat-plate"><div class="tseat-name">Seat ' + (i+1) + '</div></div>';
+      wrap.appendChild(seat);
+      continue;
+    }
+
+    seat.className = 'tseat';
     const isTurn = s.isTurn && !state.over;
     const avCls = 'av' + (s.folded ? ' folded-av' : '') + (isTurn ? ' myturn' : '');
     const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
     let cardsHtml = '';
-    if (s.cards) {
-      s.cards.forEach(c => {
-        cardsHtml += c ? cardHTML(c, 'xs' + (s.folded ? ' ghost-card' : '')) : '<div class="card back xs"></div>';
-      });
-    }
+    if (s.cards) s.cards.forEach(c => {
+      cardsHtml += c ? cardHTML(c, 'xs' + (s.folded ? ' ghost-card' : '')) : cardHTML(null, 'xs');
+    });
 
     const actTxt = s.lastAction || '';
-    const actCls = actTxt.startsWith('Fold') ? 'tact-fold'
-      : actTxt.startsWith('Raise') ? 'tact-raise'
-      : actTxt.startsWith('Call') ? 'tact-call'
-      : actTxt.startsWith('Check') ? 'tact-check'
-      : actTxt.startsWith('Blind') ? 'tact-blind'
-      : actTxt.startsWith('All') ? 'tact-allin' : '';
-
     seat.innerHTML = '<div class="' + avCls + '">' + initials
-      + (s.isDealer ? '<div class="dchip">D</div>' : '')
-      + '</div>'
-      + '<div class="tseat-name">' + s.name + '</div>'
-      + '<div class="tseat-chips">' + s.chips + '</div>'
+      + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
+      + '<div class="tseat-plate"><div class="tseat-name">' + s.name + '</div>'
+      + '<div class="tseat-chips">' + s.chips + '</div></div>'
       + '<div class="tseat-cards">' + cardsHtml + '</div>'
-      + '<div class="tseat-act ' + actCls + '">' + actTxt + '</div>';
+      + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
     wrap.appendChild(seat);
-  });
+
+    if (s.bet > 0) betWrap.appendChild(betChip(pos, center, s.bet));
+  }
+
+  // hero's own bet chip (hero sits bottom-centre)
+  if (me && me.bet > 0) betWrap.appendChild(betChip({ x: '50%', y: '86%' }, center, me.bet));
 
   // My cards + info
   if (me) {
