@@ -65,7 +65,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm:hover{background:rgba(255,255,255,.12)}
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
-#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 16px 110px}
+#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 16px 150px}
 #table{width:100%;max-width:900px;min-height:480px;background:radial-gradient(ellipse at 50% 45%,var(--felt-mid) 0%,var(--felt) 55%,var(--felt-dark) 100%);border-radius:160px;border:12px solid var(--rail);box-shadow:0 0 0 4px var(--rail-dark),0 30px 80px rgba(0,0,0,.8),inset 0 2px 8px rgba(255,255,255,.04);position:relative;padding:40px 70px 55px}
 #think{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.3);font-style:italic;white-space:nowrap;pointer-events:none;transition:opacity .3s}
 
@@ -92,7 +92,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 
 /* PLAYER BOTTOM */
 #p-area{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px}
-#p-hole{display:flex;gap:9px}
+#p-hole{display:flex;gap:11px}
 #p-info{display:flex;flex-direction:column;align-items:center;gap:3px}
 #p-namechips{display:flex;align-items:center;gap:8px;font-size:12px}
 #p-nameval{font-weight:600}
@@ -101,6 +101,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 
 /* CARDS */
 .card{border-radius:6px;background:#fff;border:1px solid #ccc;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.5);user-select:none;line-height:1}
+.xl{width:76px;height:108px;border-radius:8px}.xl .cr{font-size:23px}.xl .cs{font-size:16px;margin-top:-2px}
 .lg{width:58px;height:82px}.lg .cr{font-size:16px}.lg .cs{font-size:12px;margin-top:-1px}
 .sm{width:38px;height:54px}.sm .cr{font-size:12px}.sm .cs{font-size:9px}
 .xs{width:26px;height:36px;border-radius:3px}.xs .cr{font-size:9px}.xs .cs{font-size:7px}
@@ -108,24 +109,38 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .back{background:repeating-linear-gradient(135deg,#1a237e,#1a237e 5px,#283593 5px,#283593 10px);border:2px solid #3949ab}
 .ghost-card{opacity:.3;filter:grayscale(.4)}
 
-/* ACTION BAR */
-#abar{position:fixed;bottom:0;left:0;right:0;background:rgba(5,14,9,.97);backdrop-filter:blur(10px);border-top:1px solid rgba(201,168,76,.14);padding:11px 14px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;z-index:90;transition:opacity .2s}
-#abar.off{opacity:.15;pointer-events:none}
-.abtn{padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .13s;min-width:80px}
-.abtn:hover{background:rgba(255,255,255,.12);transform:translateY(-1px)}
-.abtn.fold{border-color:rgba(231,76,60,.35);color:#e74c3c}.abtn.fold:hover{background:rgba(231,76,60,.1)}
-.abtn.call{border-color:rgba(52,152,219,.35);color:#3498db}.abtn.call:hover{background:rgba(52,152,219,.1)}
-.abtn.check{border-color:rgba(46,204,113,.35);color:#2ecc71}.abtn.check:hover{background:rgba(46,204,113,.1)}
-.abtn.raise{border-color:rgba(201,168,76,.35);color:var(--gold)}.abtn.raise:hover{background:rgba(201,168,76,.1)}
-.abtn.allin{border-color:rgba(231,76,60,.5);color:#e74c3c;font-weight:600}
-.raise-wrap{display:flex;align-items:center;gap:8px}
-.size-btns{display:flex;gap:4px}
-.size-btn{padding:7px 9px;border-radius:7px;border:1px solid rgba(201,168,76,.25);background:rgba(201,168,76,.08);color:var(--gold-l);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
-.size-btn:hover{background:rgba(201,168,76,.18)}
-#rslider{width:110px;accent-color:var(--gold)}
-.rinput{width:66px;padding:8px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.25);border-radius:7px;color:var(--gold-l);font-family:'DM Mono',monospace;font-size:13px;text-align:center}
+/* ACTION BAR — bottom-right, large two-step buttons (PokerNow style) */
+#abar{position:fixed;bottom:18px;right:18px;left:auto;z-index:90;transition:opacity .2s}
+#abar.off{opacity:.28;pointer-events:none;filter:grayscale(.4)}
+#abar-main{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.abtn{position:relative;height:60px;min-width:148px;padding:0 18px;border-radius:13px;border:1.5px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(18,30,22,.96),rgba(8,16,11,.97));color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 7px 20px rgba(0,0,0,.5)}
+.abtn:hover{transform:translateY(-2px)}
+.abtn:active{transform:translateY(0)}
+.abtn .kbd{position:absolute;top:6px;right:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace}
+.abtn.dis{opacity:.32;pointer-events:none;filter:grayscale(.6)}
+.abtn.fold{border-color:rgba(231,76,60,.55);color:#ff6f62}.abtn.fold:hover{background:rgba(231,76,60,.16)}
+.abtn.call{border-color:rgba(46,204,113,.5);color:#46d27c}.abtn.call:hover{background:rgba(46,204,113,.14)}
+.abtn.check{border-color:rgba(46,204,113,.42);color:#46d27c}.abtn.check:hover{background:rgba(46,204,113,.14)}
+.abtn.raise{border-color:rgba(201,168,76,.55);color:var(--gold-l)}.abtn.raise:hover{background:rgba(201,168,76,.16)}
+.abtn.raise.solid{background:var(--gold);color:#1a1a1a;border-color:var(--gold)}.abtn.raise.solid:hover{background:var(--gold-l)}
+.abtn.ghost{border-color:rgba(255,255,255,.16);color:rgba(255,255,255,.6)}.abtn.ghost:hover{background:rgba(255,255,255,.08)}
+/* raise sizing panel */
+#abar-raise{width:312px;background:linear-gradient(180deg,rgba(18,30,22,.97),rgba(8,16,11,.98));border:1.5px solid rgba(201,168,76,.28);border-radius:15px;padding:13px;box-shadow:0 10px 28px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:11px}
+.size-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.size-btn{padding:9px 0;border-radius:8px;border:1px solid rgba(201,168,76,.28);background:rgba(201,168,76,.09);color:var(--gold-l);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .12s}
+.size-btn:hover{background:rgba(201,168,76,.22)}
+.raise-amt{display:flex;align-items:center;gap:11px}
+#rslider{flex:1;accent-color:var(--gold)}
+.rinput{width:84px;padding:9px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.3);border-radius:8px;color:var(--gold-l);font-family:'DM Mono',monospace;font-size:15px;font-weight:500;text-align:center}
 .rinput:focus{outline:none;border-color:var(--gold)}
-@media(max-width:640px){.size-btns{display:none}#rslider{width:80px}#abar{gap:5px;padding:9px 8px}.abtn{padding:9px 12px;min-width:62px;font-size:12px}}
+#raise-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+#raise-actions .abtn{min-width:0;height:52px;font-size:15px}
+@media(max-width:640px){
+  #abar{left:10px;right:10px;bottom:10px}
+  #abar-main{gap:8px}
+  .abtn{min-width:0;width:100%;height:54px;font-size:15px}
+  #abar-raise{width:auto}
+}
 
 /* ── SETTINGS PANEL ── */
 #settings-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
@@ -313,21 +328,31 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
     </div>
   </div>
   <div id="abar" class="off">
-    <button class="abtn fold" onclick="send('fold')">Fold</button>
-    <button class="abtn check hidden" id="btn-check" onclick="send('check')">Check</button>
-    <button class="abtn call hidden" id="btn-call" onclick="send('call')">Call</button>
-    <div class="raise-wrap" id="raise-wrap">
-      <div class="size-btns" id="size-btns">
+    <!-- Primary actions -->
+    <div id="abar-main">
+      <button class="abtn call" id="btn-call" onclick="send('call')"><span class="kbd">C</span><span class="albl">Call</span></button>
+      <button class="abtn raise" id="btn-raise-open" onclick="openRaise()"><span class="kbd">R</span><span class="albl">Raise</span></button>
+      <button class="abtn check" id="btn-check" onclick="send('check')"><span class="kbd">K</span><span class="albl">Check</span></button>
+      <button class="abtn fold" id="btn-fold" onclick="send('fold')"><span class="kbd">F</span><span class="albl">Fold</span></button>
+    </div>
+    <!-- Raise sizing (revealed after pressing Raise) -->
+    <div id="abar-raise" class="hidden">
+      <div class="size-btns">
+        <button class="size-btn" onclick="setSize('min')">Min</button>
         <button class="size-btn" onclick="setSize(0.5)">½ Pot</button>
         <button class="size-btn" onclick="setSize(0.75)">¾ Pot</button>
         <button class="size-btn" onclick="setSize(1)">Pot</button>
-        <button class="size-btn" onclick="setSize('max')">Max</button>
+        <button class="size-btn" onclick="setSize('max')">All-in</button>
       </div>
-      <input type="range" id="rslider" min="20" max="500" step="5" value="40" oninput="onRaiseInput('slider')">
-      <input type="number" id="rinput" class="rinput" oninput="onRaiseInput('input')">
-      <button class="abtn raise" id="btn-raise" onclick="send('raise')">Raise</button>
+      <div class="raise-amt">
+        <input type="range" id="rslider" min="20" max="500" step="5" value="40" oninput="onRaiseInput('slider')">
+        <input type="number" id="rinput" class="rinput" oninput="onRaiseInput('input')">
+      </div>
+      <div id="raise-actions">
+        <button class="abtn ghost" onclick="closeRaise()"><span class="kbd">Esc</span><span class="albl">Back</span></button>
+        <button class="abtn raise solid" id="btn-raise-confirm" onclick="confirmRaise()"><span class="kbd">↵</span><span class="albl">Raise</span></button>
+      </div>
     </div>
-    <button class="abtn allin" id="btn-allin" onclick="send('allin')">All-in</button>
   </div>
 </div>
 
@@ -395,6 +420,7 @@ let socket, roomCode, mySeatIndex, myName, isHost;
 let lastState = null;
 let inviteUrl = '';
 let raiseCtx = null;
+let myTurnWas = false;
 
 // ── SOCKET ──
 function initSocket() {
@@ -674,8 +700,8 @@ function renderGame(state) {
     ph.innerHTML = '';
     if (me.cards) {
       me.cards.forEach(c => {
-        if (!c) { ph.appendChild(backCard('lg')); return; }
-        const el = cardEl(c, 'lg');
+        if (!c) { ph.appendChild(backCard('xl')); return; }
+        const el = cardEl(c, 'xl');
         if (me.folded) el.classList.add('ghost-card');
         ph.appendChild(el);
       });
@@ -683,20 +709,28 @@ function renderGame(state) {
     document.getElementById('p-chipsval').textContent = me.chips + ' chips';
 
     // action bar
-    if (me.isTurn && !state.over) {
+    const myTurn = me.isTurn && !state.over;
+    if (myTurn) {
       const call = Math.max(0, state.curBet - me.bet);
       const canCheck = call === 0;
-      document.getElementById('btn-check').classList.toggle('hidden', !canCheck);
-      const callBtn = document.getElementById('btn-call');
-      callBtn.classList.toggle('hidden', canCheck);
-      callBtn.textContent = call >= me.chips ? 'Call ' + me.chips + ' (All-in)' : 'Call ' + call;
 
-      // raise / bet controls — only when the player has chips beyond the call
+      // Call: enabled only when there's something to call
+      const callBtn = document.getElementById('btn-call');
+      setBtnEnabled(callBtn, !canCheck);
+      callBtn.querySelector('.albl').textContent = canCheck ? 'Call'
+        : call >= me.chips ? 'All-in ' + me.chips : 'Call ' + call;
+
+      // Check: enabled only when nothing to call
+      setBtnEnabled(document.getElementById('btn-check'), canCheck);
+
+      // Raise / Bet: enabled only when the player has chips beyond the call
       const minTotal = Math.max(state.bb, state.curBet + state.bb); // min legal total bet
       const maxTotal = me.bet + me.chips;                          // all-in total
-      const raiseWrap = document.getElementById('raise-wrap');
-      if (me.chips > call && maxTotal > state.curBet) {
-        raiseWrap.style.display = 'flex';
+      const canRaise = me.chips > call && maxTotal > state.curBet;
+      const raiseBtn = document.getElementById('btn-raise-open');
+      raiseBtn.querySelector('.albl').textContent = state.curBet === 0 ? 'Bet' : 'Raise';
+      setBtnEnabled(raiseBtn, canRaise);
+      if (canRaise) {
         const lo = Math.min(minTotal, maxTotal);
         const sl = document.getElementById('rslider');
         sl.min = lo; sl.max = maxTotal; sl.step = Math.max(1, state.sb);
@@ -704,12 +738,16 @@ function renderGame(state) {
         raiseCtx = { pot: state.pot, curBet: state.curBet, bet: me.bet, lo, hi: maxTotal };
         onRaiseInput('slider');
       } else {
-        raiseWrap.style.display = 'none';
         raiseCtx = null;
       }
-      document.getElementById('btn-allin').style.display = me.chips > 0 ? '' : 'none';
+
+      // On a fresh turn, always start on the primary panel
+      if (!myTurnWas) showRaisePanel(false);
+      myTurnWas = true;
       document.getElementById('abar').classList.remove('off');
     } else {
+      myTurnWas = false;
+      showRaisePanel(false);
       document.getElementById('abar').classList.add('off');
     }
 
@@ -718,6 +756,29 @@ function renderGame(state) {
       lbl.textContent = me.lastAction;
     }
   }
+}
+
+// Enable/disable an action button (keeps a fixed PokerNow-style layout).
+function setBtnEnabled(btn, on) {
+  btn.classList.toggle('dis', !on);
+  btn.disabled = !on;
+}
+
+// Toggle between the primary buttons and the raise-sizing panel.
+function showRaisePanel(open) {
+  document.getElementById('abar-main').classList.toggle('hidden', open);
+  document.getElementById('abar-raise').classList.toggle('hidden', !open);
+}
+function openRaise() {
+  if (!raiseCtx) return;
+  showRaisePanel(true);
+  onRaiseInput('slider');
+}
+function closeRaise() { showRaisePanel(false); }
+function confirmRaise() {
+  if (!raiseCtx) return;
+  send('raise');
+  showRaisePanel(false);
 }
 
 // Keep the slider, number box and Bet/Raise label in sync.
@@ -731,7 +792,7 @@ function onRaiseInput(src) {
   sl.value = v;
   if (src !== 'input' || document.activeElement !== inp) inp.value = v;
   const isBet = raiseCtx.curBet === 0 || raiseCtx.bet >= raiseCtx.curBet;
-  document.getElementById('btn-raise').textContent = (isBet ? 'Bet ' : 'Raise to ') + v;
+  document.querySelector('#btn-raise-confirm .albl').textContent = (isBet ? 'Bet ' : 'Raise ') + v;
 }
 
 // Quick pot-relative sizing buttons.
@@ -739,6 +800,7 @@ function setSize(frac) {
   if (!raiseCtx) return;
   let target;
   if (frac === 'max') target = raiseCtx.hi;
+  else if (frac === 'min') target = raiseCtx.lo;
   else target = raiseCtx.bet + Math.round(frac * raiseCtx.pot);
   target = Math.max(raiseCtx.lo, Math.min(raiseCtx.hi, target));
   document.getElementById('rslider').value = target;
@@ -751,6 +813,31 @@ function send(action) {
   socket.emit('action', { code: roomCode, action, amount });
   document.getElementById('abar').classList.add('off');
 }
+
+// Keyboard shortcuts: F fold · K check · C call · R raise · A all-in · Enter/Esc in raise panel
+document.addEventListener('keydown', e => {
+  const onGame = document.querySelector('.screen.active');
+  if (!onGame || onGame.id !== 's-game') return;
+  if (!lastState) return;
+  const me = lastState.seats && lastState.seats.find(s => s && s.isYou);
+  if (!me || !me.isTurn || lastState.over) return;
+  const raiseOpen = !document.getElementById('abar-raise').classList.contains('hidden');
+  const typing = ['INPUT','SELECT','TEXTAREA'].includes((e.target.tagName||''));
+
+  if (raiseOpen) {
+    if (e.key === 'Enter') { e.preventDefault(); confirmRaise(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeRaise(); }
+    return;
+  }
+  if (typing) return;
+  const k = e.key.toLowerCase();
+  const enabled = id => { const b = document.getElementById(id); return b && !b.disabled; };
+  if (k === 'f') { e.preventDefault(); send('fold'); }
+  else if (k === 'k' && enabled('btn-check')) { e.preventDefault(); send('check'); }
+  else if (k === 'c' && enabled('btn-call')) { e.preventDefault(); send('call'); }
+  else if (k === 'r' && enabled('btn-raise-open')) { e.preventDefault(); openRaise(); }
+  else if (k === 'a' && me.chips > 0) { e.preventDefault(); send('allin'); }
+});
 
 function endSession() {
   if (!socket || !roomCode) return;
