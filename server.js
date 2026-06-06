@@ -76,6 +76,16 @@ io.on('connection', socket => {
     broadcast(room);
   });
 
+  socket.on('chat', ({ code, text }) => {
+    const room = getRoom(code || '');
+    if (!room) return;
+    text = (text || '').toString().replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!text) return;
+    const idx = seatOfSocket(room, socket.id);
+    const name = idx >= 0 ? room.seats[idx].name : 'Spectator';
+    io.to(room.code).emit('chat_msg', { name, text });
+  });
+
   socket.on('start_game', ({ code }) => {
     const room = getRoom(code);
     if (!room || room.hostId !== socket.id) return;

@@ -97,10 +97,18 @@
       <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
     </div>
     <div class="tb-right">
+      <button class="btn-sm" onclick="toggleChat()" id="btn-chat" title="Chat">💬</button>
       <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
       <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
       <button class="btn-sm red" onclick="endSession()">End session</button>
     </div>
+  </div>
+  <div id="chat" class="closed">
+    <div id="chat-head" onclick="toggleChat()"><span>💬 Table chat</span><span id="chat-caret">▸</span></div>
+    <div id="chat-msgs"></div>
+    <form id="chat-form" onsubmit="sendChat(event)" autocomplete="off">
+      <input id="chat-input" maxlength="200" placeholder="Say something…">
+    </form>
   </div>
   <div id="table-wrap">
     <div id="table">
@@ -122,7 +130,6 @@
             <span id="p-chipsval">—</span>
             <span id="p-wins" class="tseat-wins"></span>
           </div>
-          <div id="p-actlbl"></div>
         </div>
       </div>
     </div>

@@ -1102,10 +1102,10 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..881103a
+index 0000000..d9a365b
 --- /dev/null
 +++ b/public/css/styles.css
-@@ -0,0 +1,289 @@
+@@ -0,0 +1,353 @@
 +*{box-sizing:border-box;margin:0;padding:0}
 +:root{--felt:#1b3d2a;--felt-mid:#1e4830;--felt-dark:#0f2017;--rail:#5c3d1e;--rail-dark:#3a2510;--gold:#c9a84c;--gold-l:#e8cc7a}
 +body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-height:100vh;overflow-x:hidden}
@@ -1196,13 +1196,14 @@ index 0000000..881103a
 +
 +/* BET CHIPS on felt */
 +.chip{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#f0d896,#c9a84c 70%);border:2px solid #8a6d2a;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);flex-shrink:0}
-+.tbet{position:absolute;display:flex;align-items:center;gap:6px;transform:translate(-50%,-50%);background:rgba(8,16,11,.85);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:3px 11px 3px 4px;font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l);white-space:nowrap;z-index:6;box-shadow:0 3px 9px rgba(0,0,0,.5)}
++.tbet{position:absolute;transform:translate(-50%,-50%);background:linear-gradient(180deg,#e8cc7a,#c9a84c);color:#1a1409;border:1.5px solid #f0d896;border-radius:13px;padding:3px 11px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;white-space:nowrap;z-index:6;box-shadow:0 3px 9px rgba(0,0,0,.55),0 0 0 2px rgba(0,0,0,.18)}
 +
 +/* COMMUNITY */
 +#community{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:11px;z-index:3}
 +#cboard{display:flex;gap:9px}
 +.board-slot{width:64px;height:90px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
-+#cpot{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:#f5ead0;background:rgba(8,16,11,.72);border:1px solid rgba(201,168,76,.32);padding:6px 16px;border-radius:22px;box-shadow:0 5px 14px rgba(0,0,0,.5)}
++#cpot{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:17px;font-weight:600;color:#f7eed6;background:rgba(8,16,11,.8);border:1.5px solid rgba(201,168,76,.42);padding:7px 18px;border-radius:22px;box-shadow:0 6px 16px rgba(0,0,0,.55)}
++.cpot-l{font-size:9px;letter-spacing:.14em;color:rgba(201,168,76,.75);font-weight:700}
 +#cpot:empty{display:none}
 +#cstreet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(201,168,76,.5);font-weight:600}
 +@media(max-width:760px){
@@ -1395,8 +1396,71 @@ index 0000000..881103a
 +.hidden{display:none!important}
 +#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 +#toast.show{opacity:1}
++
++/* ── CHAT ── */
++#chat{position:fixed;left:14px;bottom:14px;width:300px;max-width:calc(100vw - 28px);background:rgba(8,16,11,.94);border:1px solid rgba(201,168,76,.22);border-radius:13px;z-index:88;box-shadow:0 10px 28px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden;transition:max-height .2s}
++#chat.closed{max-height:42px}
++#chat:not(.closed){max-height:340px}
++#chat-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;font-size:13px;font-weight:600;color:var(--gold-l);cursor:pointer;user-select:none;flex-shrink:0}
++#chat-caret{transition:transform .2s;color:rgba(255,255,255,.4)}
++#chat:not(.closed) #chat-caret{transform:rotate(90deg)}
++#chat-msgs{flex:1;overflow-y:auto;padding:0 14px 8px;display:flex;flex-direction:column;gap:5px;min-height:160px}
++#chat.closed #chat-msgs,#chat.closed #chat-form{display:none}
++.chat-row{font-size:12.5px;line-height:1.35;word-break:break-word}
++.chat-name{color:var(--gold-l);font-weight:600;margin-right:6px}
++.chat-row.me .chat-name{color:#46d27c}
++.chat-text{color:rgba(240,237,228,.88)}
++#chat-form{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0}
++#chat-input{width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:13px}
++#chat-input:focus{outline:none;border-color:var(--gold)}
++.btn-sm.chat-unread{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,.3);animation:cpulse 1.4s infinite}
++@keyframes cpulse{0%,100%{box-shadow:0 0 0 2px rgba(201,168,76,.3)}50%{box-shadow:0 0 0 2px rgba(201,168,76,.6)}}
++@media(max-width:640px){#chat{width:calc(100vw - 28px)}}
++
++/* ── PODIUM LEADERBOARD ── */
++.pod-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;margin-bottom:6px;background:rgba(255,255,255,.03)}
++.pod-row.lb-you{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.28)}
++.pod-pos{font-size:22px;min-width:34px;text-align:center}
++.pod-main{flex:1;min-width:0}
++.pod-name{font-size:15px;font-weight:600;color:#f0ede4;margin-bottom:5px}
++.pod-bar{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
++.pod-bar-f{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-l))}
++.pod-meta{text-align:right;min-width:74px}
++.pod-chips{font-family:'DM Mono',monospace;font-size:15px;color:var(--gold-l);font-weight:500}
++.pod-sub{font-size:10px;color:rgba(255,255,255,.4)}
++.pod-net{font-family:'DM Mono',monospace;font-size:15px;font-weight:600;min-width:58px;text-align:right}
++
++/* ── BIGGEST LEAKS ── */
++.mk-wrap{padding:12px 18px;border-top:1px solid rgba(255,255,255,.05)}
++.mk-t{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:10px;font-weight:600}
++.mk-empty{font-size:13px;color:#46d27c;padding:6px 0}
++.mk-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
++.mk-row:last-child{border-bottom:none}
++.mk-cards{display:flex;align-items:center;gap:2px;flex-shrink:0}
++.mk-sep{color:rgba(255,255,255,.25);margin:0 3px;font-size:11px}
++.mk-body{flex:1;min-width:0}
++.mk-st{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.35);margin-bottom:2px}
++.mk-note{font-size:12px;color:rgba(240,237,228,.8);line-height:1.35}
++
++/* ── RANGE-GRID CLICK DETAIL ── */
++.rg-c.rg-played{cursor:pointer}
++.rg-c.rg-played:hover{outline:2px solid #fff;outline-offset:-2px}
++#rg-detail{margin-top:10px}
++#rg-detail:empty{display:none}
++.rgd-t{font-size:11px;font-weight:600;color:var(--gold-l);margin-bottom:6px}
++.rgd-empty{font-size:12px;color:rgba(255,255,255,.4);padding:4px 0}
++.rgd-row{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
++.rgd-act{font-size:9px;text-transform:uppercase;font-weight:600;border-radius:6px;padding:2px 6px;min-width:42px;text-align:center}
++.rgd-act.raise{background:rgba(201,168,76,.18);color:var(--gold-l)}
++.rgd-act.call{background:rgba(46,204,113,.16);color:#46d27c}
++.rgd-act.check{background:rgba(90,169,230,.16);color:#5aa9e6}
++.rgd-act.fold{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
++.rgd-cards{display:flex;align-items:center;gap:2px;flex:1}
++
++/* profit-curve tooltip */
++#chart-tip{position:fixed;pointer-events:none;background:rgba(0,0,0,.9);color:#f5ead0;font-family:'DM Mono',monospace;font-size:11px;padding:4px 9px;border-radius:7px;border:1px solid rgba(201,168,76,.3);z-index:1000;opacity:0;transition:opacity .12s;white-space:nowrap}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..a709ce2 100644
+index 0edbb13..496193e 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1670,7 +1734,7 @@ index 0edbb13..a709ce2 100644
      <div class="seat-grid" id="seat-grid"></div>
      <div class="waiting-players" id="waiting-msg">Waiting for more players… share the link to invite friends</div>
      <button class="btn-gold" id="btn-start-game" onclick="startGame()">Start game →</button>
-@@ -272,17 +92,21 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -272,17 +92,29 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    <div id="topbar">
      <div class="tb-left">
        <span class="tb-logo">♠ PokerTrack</span>
@@ -1679,11 +1743,19 @@ index 0edbb13..a709ce2 100644
        <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
      </div>
      <div class="tb-right">
++      <button class="btn-sm" onclick="toggleChat()" id="btn-chat" title="Chat">💬</button>
 +      <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
        <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
        <button class="btn-sm red" onclick="endSession()">End session</button>
      </div>
    </div>
++  <div id="chat" class="closed">
++    <div id="chat-head" onclick="toggleChat()"><span>💬 Table chat</span><span id="chat-caret">▸</span></div>
++    <div id="chat-msgs"></div>
++    <form id="chat-form" onsubmit="sendChat(event)" autocomplete="off">
++      <input id="chat-input" maxlength="200" placeholder="Say something…">
++    </form>
++  </div>
    <div id="table-wrap">
      <div id="table">
 +      <div id="table-logo">♠ PokerTrack</div>
@@ -1692,7 +1764,7 @@ index 0edbb13..a709ce2 100644
        <div id="tseats"></div>
        <div id="community">
          <div id="cstreet"></div>
-@@ -292,9 +116,11 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -292,25 +124,42 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        <div id="p-area">
          <div id="p-hole"></div>
          <div id="p-info">
@@ -1702,9 +1774,9 @@ index 0edbb13..a709ce2 100644
              <span id="p-chipsval">—</span>
 +            <span id="p-wins" class="tseat-wins"></span>
            </div>
-           <div id="p-actlbl"></div>
+-          <div id="p-actlbl"></div>
          </div>
-@@ -302,15 +128,31 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+       </div>
      </div>
    </div>
    <div id="abar" class="off">
@@ -1744,7 +1816,7 @@ index 0edbb13..a709ce2 100644
    </div>
  </div>
  
-@@ -329,6 +171,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -329,6 +178,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        </div>
      </div>
      <div class="sp-note">Big blind must be at least 2× small blind</div>
@@ -1753,7 +1825,7 @@ index 0edbb13..a709ce2 100644
      <div class="sp-section">
        <h4>Player chip stacks</h4>
        <div id="sp-players"></div>
-@@ -351,493 +195,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -351,493 +202,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    </div>
  </div>
  
@@ -2250,10 +2322,10 @@ index 0edbb13..a709ce2 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..f36e354
+index 0000000..86790d4
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,779 @@
+@@ -0,0 +1,847 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2302,9 +2374,9 @@ index 0000000..f36e354
 +let prevHandNum = 0, prevActions = {};
 +
 +// ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
-+const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/card.mp3', call:'/sounds/chips.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/flush.mp3', allin:'/sounds/idiot.mp3' };
-+const SOUND_CAP = { fold: 1.8 };       // trim the long flush clip
-+const SOUND_GAIN = { check: 0.45, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.8, allin: 0.95 };
++const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
++const SOUND_CAP = {};
++const SOUND_GAIN = { check: 0.5, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.75, allin: 1.0 };
 +const sfx = (() => {
 +  let ctx = null, muted = localStorage.getItem('pt-muted') === '1';
 +  const buffers = {};
@@ -2429,8 +2501,39 @@ index 0000000..f36e354
 +    showScreen('s-results');
 +  });
 +
++  socket.on('chat_msg', addChatMsg);
++
 +  socket.on('err', msg => toast(msg));
 +}
++
++// ── CHAT ──
++function toggleChat() {
++  const c = document.getElementById('chat');
++  c.classList.toggle('closed');
++  if (!c.classList.contains('closed')) {
++    document.getElementById('btn-chat').classList.remove('chat-unread');
++    const i = document.getElementById('chat-input'); if (i) i.focus();
++    const m = document.getElementById('chat-msgs'); m.scrollTop = m.scrollHeight;
++  }
++}
++function sendChat(e) {
++  e.preventDefault();
++  const inp = document.getElementById('chat-input');
++  const text = inp.value.trim();
++  if (!text || !socket || !roomCode) return;
++  socket.emit('chat', { code: roomCode, text });
++  inp.value = '';
++}
++function addChatMsg({ name, text }) {
++  const m = document.getElementById('chat-msgs');
++  const row = document.createElement('div');
++  row.className = 'chat-row' + (name === myName ? ' me' : '');
++  row.innerHTML = '<span class="chat-name">' + esc(name) + '</span><span class="chat-text">' + esc(text) + '</span>';
++  m.appendChild(row);
++  m.scrollTop = m.scrollHeight;
++  if (document.getElementById('chat').classList.contains('closed')) document.getElementById('btn-chat').classList.add('chat-unread');
++}
++function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 +
 +// ── LOBBY ACTIONS ──
 +function switchTab(t) {
@@ -2590,7 +2693,7 @@ index 0000000..f36e354
 +  d.className = 'tbet';
 +  d.style.left = (px + (center.x - px) * 0.42) + '%';
 +  d.style.top = (py + (center.y - py) * 0.42) + '%';
-+  d.innerHTML = '<span class="chip"></span>' + amt;
++  d.textContent = amt;
 +  return d;
 +}
 +
@@ -2606,7 +2709,7 @@ index 0000000..f36e354
 +    if (i < state.board.length) bc.appendChild(cardEl(state.board[i], 'lg'));
 +    else { const ph = document.createElement('div'); ph.className='board-slot'; bc.appendChild(ph); }
 +  }
-+  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="chip"></span>' + state.pot : '';
++  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="cpot-l">POT</span>' + state.pot : '';
 +  document.getElementById('cstreet').textContent = state.street ? state.street.toUpperCase() : '';
 +
 +  const me = state.seats.find(s => s && s.isYou);
@@ -2719,11 +2822,6 @@ index 0000000..f36e354
 +      showRaisePanel(false);
 +      document.getElementById('abar').classList.add('off');
 +    }
-+
-+    if (me.lastAction) {
-+      const lbl = document.getElementById('p-actlbl');
-+      lbl.textContent = me.lastAction;
-+    }
 +  }
 +}
 +
@@ -2802,12 +2900,23 @@ index 0000000..f36e354
 +  if (typing) return;
 +  const k = e.key.toLowerCase();
 +  const enabled = id => { const b = document.getElementById(id); return b && !b.disabled; };
++  const canCheck = enabled('btn-check');
 +  if (k === 'f') { e.preventDefault(); send('fold'); }
-+  else if (k === 'k' && enabled('btn-check')) { e.preventDefault(); send('check'); }
-+  else if (k === 'c' && enabled('btn-call')) { e.preventDefault(); send('call'); }
++  else if (k === 'k' && canCheck) { e.preventDefault(); send('check'); }
++  // C = call when facing a bet; when nobody has bet yet, C makes the minimum bet
++  else if (k === 'c') { e.preventDefault(); if (enabled('btn-call')) send('call'); else if (canCheck) minRaise(); }
++  else if (k === 'm') { e.preventDefault(); minRaise(); }          // M = instant minimum raise/bet
 +  else if (k === 'r' && enabled('btn-raise-open')) { e.preventDefault(); openRaise(); }
 +  else if (k === 'a' && me.chips > 0) { e.preventDefault(); send('allin'); }
 +});
++
++// Fire an immediate minimum-legal raise/bet (no panel).
++function minRaise() {
++  if (!raiseCtx) return;
++  document.getElementById('rslider').value = raiseCtx.lo;
++  send('raise');
++  showRaisePanel(false);
++}
 +
 +function endSession() {
 +  if (!socket || !roomCode) return;
@@ -2828,6 +2937,7 @@ index 0000000..f36e354
 +  const top = leaderboard[0];
 +  document.getElementById('res-sub').textContent = handNum + ' hands played · '
 +    + (top.name === you.name ? 'you finished on top 🏆' : top.name + ' finished on top');
++  window.__hl = you.stat.handLog || []; // for the clickable range grid
 +  buildLB(leaderboard, you.name);
 +  const grid = document.getElementById('res-grid');
 +  grid.innerHTML = '';
@@ -2840,26 +2950,36 @@ index 0000000..f36e354
 +}
 +
 +function buildLB(players, youName) {
-+  const max = Math.max(...players.map(p => p.chips)) || 1;
 +  const medals = ['🥇','🥈','🥉'];
-+  let html = '<h3>🏆 Leaderboard</h3>';
++  const max = Math.max(...players.map(p => p.chips)) || 1;
++  let html = '<h3>🏆 Final standings</h3>';
 +  players.forEach((p, i) => {
-+    const net = p.net;
++    const net = p.net, netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu';
 +    const wr = p.handsPlayed ? Math.round(p.wins / p.handsPlayed * 100) : 0;
-+    const gto = p.gtoAcc;
-+    const bw = Math.round(p.chips / max * 100);
-+    html += '<div class="lb-row' + (p.name === youName ? ' lb-you' : '') + '">'
-+      + '<div class="lb-pos">' + (medals[i] || '#' + (i+1)) + '</div>'
-+      + '<div class="lb-name">' + p.name + (p.name === youName ? ' <span class="lb-youtag">YOU</span>' : '') + '</div>'
-+      + '<div class="lb-bars">'
-+      + '<div class="lb-br"><span>Chips</span><div class="lb-bt"><div class="lb-bf" style="width:' + bw + '%;background:var(--gold)"></div></div><span class="lb-bv" style="color:var(--gold-l)">' + p.chips + '</span></div>'
-+      + '<div class="lb-br"><span>Win %</span><div class="lb-bt"><div class="lb-bf" style="width:' + wr + '%;background:#2ecc71"></div></div><span class="lb-bv" style="color:#2ecc71">' + wr + '%</span></div>'
-+      + '<div class="lb-br"><span>GTO</span><div class="lb-bt"><div class="lb-bf" style="width:' + gto + '%;background:#3498db"></div></div><span class="lb-bv" style="color:#3498db">' + gto + '%</span></div>'
-+      + '</div>'
-+      + '<div class="lb-net ' + (net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu') + '">' + (net > 0 ? '+' : '') + net + '</div>'
++    html += '<div class="pod-row' + (p.name === youName ? ' lb-you' : '') + '">'
++      + '<div class="pod-pos">' + (medals[i] || '#' + (i+1)) + '</div>'
++      + '<div class="pod-main"><div class="pod-name">' + esc(p.name) + (p.name === youName ? ' <span class="lb-youtag">YOU</span>' : '') + '</div>'
++      + '<div class="pod-bar"><div class="pod-bar-f" style="width:' + Math.round(p.chips / max * 100) + '%"></div></div></div>'
++      + '<div class="pod-meta"><div class="pod-chips">' + p.chips + '</div><div class="pod-sub">' + wr + '% won · 🏆' + p.wins + '</div></div>'
++      + '<div class="pod-net ' + netCls + '">' + (net > 0 ? '+' : '') + net + '</div>'
 +      + '</div>';
 +  });
 +  document.getElementById('res-lb').innerHTML = html;
++}
++
++// Detail panel for a clicked range-grid cell.
++function showCombo(combo) {
++  const el = document.getElementById('rg-detail'); if (!el) return;
++  const hands = (window.__hl || []).filter(h => h.combo === combo);
++  if (!hands.length) { el.innerHTML = '<div class="rgd-empty">' + combo + ' — not dealt this session</div>'; return; }
++  el.innerHTML = '<div class="rgd-t">' + combo + ' · ' + hands.length + ' hand' + (hands.length > 1 ? 's' : '') + '</div>'
++    + hands.map(h => {
++      const cards = h.cards.map(c => cardHTML(c, 'xs')).join('');
++      const board = (h.board || []).map(c => cardHTML(c, 'xs')).join('');
++      const res = h.won ? '<span class="hh-res hw">+' + h.winAmt + '</span>' : h.folded ? '<span class="hh-res hf">Fold</span>' : '<span class="hh-res hl">Lost</span>';
++      return '<div class="rgd-row"><span class="rgd-act ' + h.pfAction + '">' + h.pfAction + '</span>'
++        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res + '</div>';
++    }).join('');
 +}
 +
 +// 13×13 starting-hand grid showing how the player actually played each combo preflop.
@@ -2882,14 +3002,15 @@ index 0000000..f36e354
 +  for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
 +    const combo = i === j ? RANKS13[i] + RANKS13[j] : i < j ? RANKS13[i] + RANKS13[j] + 's' : RANKS13[j] + RANKS13[i] + 'o';
 +    const a = pick(combo);
-+    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '" title="' + combo + (a ? ' · ' + a : '') + '">' + combo + '</div>';
++    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '"'
++      + (a ? ' onclick="showCombo(\'' + combo + '\')"' : '') + ' title="' + combo + (a ? ' · ' + a + ' (click)' : '') + '">' + combo + '</div>';
 +  }
-+  return '<div class="rg-wrap"><div class="rg-t">Your preflop play (by hand)</div>'
++  return '<div class="rg-wrap"><div class="rg-t">Your preflop play — tap a hand to see it</div>'
 +    + '<div class="rg-grid">' + cells + '</div>'
 +    + '<div class="rg-legend">'
 +    + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
 +    + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
-+    + '</div></div>';
++    + '</div><div id="rg-detail"></div></div>';
 +}
 +
 +// circular accuracy gauge with a letter grade
@@ -2951,38 +3072,35 @@ index 0000000..f36e354
 +      const col = a >= 70 ? '#2ecc71' : a >= 50 ? '#e8cc7a' : '#e74c3c';
 +      return '<div class="gsa"><div class="gsa-l">' + st + '</div><div class="gsa-v" style="color:' + col + '">' + a + '%</div></div>';
 +    }).join('') + '</div>';
-+    s.gtoDecisions.slice(-8).forEach(d => {
-+      const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : '');
-+      html += '<div class="gto-dec"><div class="gto-dot ' + (d.correct?'c':'w') + '"></div>'
-+        + '<div class="gto-st">' + d.street + '</div>'
-+        + '<div class="gto-note">' + d.note + '</div>'
-+        + (badge ? '<div class="gto-badge">' + badge + '</div>' : '') + '</div>';
-+    });
++    html += '</div>';
++
++    // Biggest leaks — your worst decisions, with the hand + board shown
++    const byHand = {}; (s.handLog || []).forEach(h => byHand[h.num] = h);
++    const mistakes = s.gtoDecisions.filter(d => !d.correct).slice(-5).reverse();
++    html += '<div class="mk-wrap"><div class="mk-t">🔍 Biggest leaks</div>';
++    if (!mistakes.length) {
++      html += '<div class="mk-empty">No major leaks — clean session! 🎉</div>';
++    } else {
++      mistakes.forEach(d => {
++        const hl = byHand[d.hand] || { cards: [], board: [] };
++        const n = d.street === 'preflop' ? 0 : d.street === 'flop' ? 3 : d.street === 'turn' ? 4 : 5;
++        const cards = (hl.cards || []).map(c => cardHTML(c, 'xs')).join('');
++        const board = (hl.board || []).slice(0, n).map(c => cardHTML(c, 'xs')).join('');
++        const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : '');
++        html += '<div class="mk-row"><div class="mk-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</div>'
++          + '<div class="mk-body"><div class="mk-st">' + d.street + ' · ' + d.action + '</div><div class="mk-note">' + d.note + '</div></div>'
++          + (badge ? '<div class="gto-badge">' + badge + '</div>' : '') + '</div>';
++      });
++    }
 +    html += '</div>';
 +  }
 +
-+  // Preflop range grid
++  // Preflop range grid (clickable — replaces the old hand-history list)
 +  html += buildRangeGrid(s.handLog || []);
 +
-+  // Hand history
-+  if (s.handLog && s.handLog.length) {
-+    html += '<div class="hh-wrap"><div class="hh-t">Hand history</div>';
-+    s.handLog.forEach(h => {
-+      const rc = h.won?'hw':h.ghostWin?'hg':h.folded?'hf':'hl';
-+      const rt = h.won?'Won':h.ghostWin?'👻':'Folded'===(''+h.folded*1&&'Folded')?'Folded':'Lost';
-+      const rtx = h.won?'Won':h.ghostWin?'👻 Ghost':h.folded?'Folded':'Lost';
-+      html += '<div class="hh-row"><span class="hh-n">#' + h.num + '</span>'
-+        + '<span class="hh-c">' + cardHTML(h.cards[0],'xs') + cardHTML(h.cards[1],'xs') + '</span>'
-+        + '<span class="hh-p">' + h.pfLabel + '</span>'
-+        + '<span class="hh-amt">' + (h.won&&h.winAmt?'+'+h.winAmt:'') + '</span>'
-+        + '<span class="hh-res ' + rc + '">' + rtx + '</span></div>';
-+    });
-+    html += '</div>';
-+  }
-+
-+  // Chart
-+  html += '<div class="chart-wrap"><div class="chart-t">Chip history</div>'
-+    + '<canvas id="ch-' + p.name.replace(/[^a-z0-9]/gi,'_') + '" style="width:100%;height:56px;display:block"></canvas>'
++  // Profit curve
++  html += '<div class="chart-wrap"><div class="chart-t">Profit curve</div>'
++    + '<canvas id="ch-' + p.name.replace(/[^a-z0-9]/gi,'_') + '" style="width:100%;height:72px;display:block"></canvas>'
 +    + '</div>';
 +
 +  card.innerHTML = html;
@@ -2990,26 +3108,48 @@ index 0000000..f36e354
 +  return card;
 +}
 +
++// Profit curve: net chips vs the starting stack, zero baseline, green up / red down, hover tooltip.
 +function drawChart(id, data) {
 +  const c = document.getElementById(id);
 +  if (!c || !data || data.length < 2) return;
-+  c.width = c.offsetWidth || 300; c.height = 56;
-+  const ctx = c.getContext('2d');
-+  const w = c.width, h = c.height;
-+  const mn = Math.min(...data) * .93, mx = Math.max(...data) * 1.07;
-+  const rng = mx - mn || 1;
-+  const sx = i => (i/(data.length-1))*(w-4)+2;
-+  const sy = v => h-2-((v-mn)/rng)*(h-6);
-+  ctx.clearRect(0,0,w,h);
-+  ctx.beginPath(); ctx.moveTo(sx(0),sy(data[0]));
-+  data.forEach((v,i)=>ctx.lineTo(sx(i),sy(v)));
-+  ctx.lineTo(sx(data.length-1),h); ctx.lineTo(sx(0),h); ctx.closePath();
-+  const g = ctx.createLinearGradient(0,0,0,h);
-+  g.addColorStop(0,'rgba(201,168,76,.22)'); g.addColorStop(1,'rgba(201,168,76,.02)');
-+  ctx.fillStyle=g; ctx.fill();
-+  ctx.beginPath(); ctx.moveTo(sx(0),sy(data[0]));
-+  data.forEach((v,i)=>ctx.lineTo(sx(i),sy(v)));
-+  ctx.strokeStyle='#c9a84c'; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
++  const start = data[0], net = data.map(v => v - start);
++  c.width = c.offsetWidth || 300; c.height = 72;
++  const ctx = c.getContext('2d'), w = c.width, h = c.height;
++  const mn = Math.min(0, ...net), mx = Math.max(0, ...net), rng = (mx - mn) || 1;
++  const sx = i => (i / (net.length - 1)) * (w - 6) + 3;
++  const sy = v => h - 5 - ((v - mn) / rng) * (h - 12);
++  const y0 = sy(0), finalNet = net[net.length - 1];
++  const up = finalNet >= 0, line = up ? '#2ecc71' : '#e74c3c';
++  function render(hi) {
++    ctx.clearRect(0, 0, w, h);
++    ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.setLineDash([3, 3]);
++    ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(w, y0); ctx.stroke(); ctx.setLineDash([]);
++    ctx.beginPath(); ctx.moveTo(sx(0), sy(net[0]));
++    net.forEach((v, i) => ctx.lineTo(sx(i), sy(v)));
++    ctx.lineTo(sx(net.length - 1), y0); ctx.lineTo(sx(0), y0); ctx.closePath();
++    const g = ctx.createLinearGradient(0, 0, 0, h);
++    if (up) { g.addColorStop(0, 'rgba(46,204,113,.3)'); g.addColorStop(1, 'rgba(46,204,113,.02)'); }
++    else { g.addColorStop(0, 'rgba(231,76,60,.04)'); g.addColorStop(1, 'rgba(231,76,60,.3)'); }
++    ctx.fillStyle = g; ctx.fill();
++    ctx.beginPath(); ctx.moveTo(sx(0), sy(net[0]));
++    net.forEach((v, i) => ctx.lineTo(sx(i), sy(v)));
++    ctx.strokeStyle = line; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
++    if (hi != null) {
++      ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.moveTo(sx(hi), 0); ctx.lineTo(sx(hi), h); ctx.stroke();
++      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sx(hi), sy(net[hi]), 3, 0, 7); ctx.fill();
++    }
++  }
++  render(null);
++  let tip = document.getElementById('chart-tip');
++  if (!tip) { tip = document.createElement('div'); tip.id = 'chart-tip'; document.body.appendChild(tip); }
++  c.onmousemove = ev => {
++    const r = c.getBoundingClientRect();
++    let i = Math.round(((ev.clientX - r.left) - 3) / (w - 6) * (net.length - 1));
++    i = Math.max(0, Math.min(net.length - 1, i)); render(i);
++    const v = net[i]; tip.textContent = 'Hand ' + i + ': ' + (v >= 0 ? '+' : '') + v;
++    tip.style.left = (ev.clientX + 12) + 'px'; tip.style.top = (ev.clientY - 8) + 'px'; tip.style.opacity = '1';
++  };
++  c.onmouseleave = () => { render(null); if (tip) tip.style.opacity = '0'; };
 +}
 +
 +// ── UTILS ──
@@ -3033,28 +3173,32 @@ index 0000000..f36e354
 +    switchTab('join');
 +  }
 +});
+diff --git a/public/sounds/allin.mp3 b/public/sounds/allin.mp3
+new file mode 100644
+index 0000000..80e4d62
+Binary files /dev/null and b/public/sounds/allin.mp3 differ
 diff --git a/public/sounds/card.mp3 b/public/sounds/card.mp3
 new file mode 100644
 index 0000000..3534b90
 Binary files /dev/null and b/public/sounds/card.mp3 differ
-diff --git a/public/sounds/chips.mp3 b/public/sounds/chips.mp3
+diff --git a/public/sounds/chips1.mp3 b/public/sounds/chips1.mp3
 new file mode 100644
-index 0000000..78bfbbb
-Binary files /dev/null and b/public/sounds/chips.mp3 differ
+index 0000000..9676d31
+Binary files /dev/null and b/public/sounds/chips1.mp3 differ
 diff --git a/public/sounds/chips2.mp3 b/public/sounds/chips2.mp3
 new file mode 100644
-index 0000000..78bfbbb
+index 0000000..7c71f97
 Binary files /dev/null and b/public/sounds/chips2.mp3 differ
-diff --git a/public/sounds/flush.mp3 b/public/sounds/flush.mp3
+diff --git a/public/sounds/takecard.mp3 b/public/sounds/takecard.mp3
 new file mode 100644
-index 0000000..755d621
-Binary files /dev/null and b/public/sounds/flush.mp3 differ
-diff --git a/public/sounds/idiot.mp3 b/public/sounds/idiot.mp3
+index 0000000..d7e7089
+Binary files /dev/null and b/public/sounds/takecard.mp3 differ
+diff --git a/public/sounds/takecard2.mp3 b/public/sounds/takecard2.mp3
 new file mode 100644
-index 0000000..e5c032b
-Binary files /dev/null and b/public/sounds/idiot.mp3 differ
+index 0000000..eb6788c
+Binary files /dev/null and b/public/sounds/takecard2.mp3 differ
 diff --git a/server.js b/server.js
-index acd381e..5cb83d8 100644
+index acd381e..de8efdc 100644
 --- a/server.js
 +++ b/server.js
 @@ -3,527 +3,45 @@ const http = require('http');
@@ -3604,7 +3748,7 @@ index acd381e..5cb83d8 100644
      if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
      myRoom = room.code;
      mySeat = emptyIdx;
-@@ -535,11 +53,25 @@ io.on('connection', socket => {
+@@ -535,15 +53,39 @@ io.on('connection', socket => {
  
    socket.on('take_seat', ({ code, seatIndex, name }) => {
      const room = getRoom(code);
@@ -3632,7 +3776,21 @@ index acd381e..5cb83d8 100644
      socket.emit('joined_room', { code: room.code, seatIndex });
      broadcast(room);
    });
-@@ -554,8 +86,7 @@ io.on('connection', socket => {
+ 
++  socket.on('chat', ({ code, text }) => {
++    const room = getRoom(code || '');
++    if (!room) return;
++    text = (text || '').toString().replace(/\s+/g, ' ').trim().slice(0, 200);
++    if (!text) return;
++    const idx = seatOfSocket(room, socket.id);
++    const name = idx >= 0 ? room.seats[idx].name : 'Spectator';
++    io.to(room.code).emit('chat_msg', { name, text });
++  });
++
+   socket.on('start_game', ({ code }) => {
+     const room = getRoom(code);
+     if (!room || room.hostId !== socket.id) return;
+@@ -554,8 +96,7 @@ io.on('connection', socket => {
    socket.on('action', ({ code, action, amount }) => {
      const room = getRoom(code);
      if (!room || mySeat === null) return;
@@ -3642,7 +3800,7 @@ index acd381e..5cb83d8 100644
      broadcast(room);
      scheduleNext(room);
    });
-@@ -563,7 +94,7 @@ io.on('connection', socket => {
+@@ -563,7 +104,7 @@ io.on('connection', socket => {
    socket.on('update_settings', ({ code, sb, bb, startChips }) => {
      const room = getRoom(code);
      if (!room || room.hostId !== socket.id) return;
@@ -3651,7 +3809,7 @@ index acd381e..5cb83d8 100644
      room.sb = sb;
      room.bb = bb;
      if (startChips) room.startChips = startChips;
-@@ -583,12 +114,20 @@ io.on('connection', socket => {
+@@ -583,12 +124,20 @@ io.on('connection', socket => {
      if (!room) return;
      room.over = true;
      if (room.actionTimer) clearTimeout(room.actionTimer);
@@ -3678,7 +3836,7 @@ index acd381e..5cb83d8 100644
    });
  
    socket.on('disconnect', () => {
-@@ -599,21 +138,18 @@ io.on('connection', socket => {
+@@ -599,21 +148,18 @@ io.on('connection', socket => {
      if (p) {
        p.connected = false;
        broadcast(room);

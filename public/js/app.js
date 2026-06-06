@@ -46,9 +46,9 @@ let myTurnWas = false;
 let prevHandNum = 0, prevActions = {};
 
 // ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
-const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/card.mp3', call:'/sounds/chips.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/flush.mp3', allin:'/sounds/idiot.mp3' };
-const SOUND_CAP = { fold: 1.8 };       // trim the long flush clip
-const SOUND_GAIN = { check: 0.45, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.8, allin: 0.95 };
+const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
+const SOUND_CAP = {};
+const SOUND_GAIN = { check: 0.5, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.75, allin: 1.0 };
 const sfx = (() => {
   let ctx = null, muted = localStorage.getItem('pt-muted') === '1';
   const buffers = {};
@@ -173,8 +173,39 @@ function initSocket() {
     showScreen('s-results');
   });
 
+  socket.on('chat_msg', addChatMsg);
+
   socket.on('err', msg => toast(msg));
 }
+
+// ── CHAT ──
+function toggleChat() {
+  const c = document.getElementById('chat');
+  c.classList.toggle('closed');
+  if (!c.classList.contains('closed')) {
+    document.getElementById('btn-chat').classList.remove('chat-unread');
+    const i = document.getElementById('chat-input'); if (i) i.focus();
+    const m = document.getElementById('chat-msgs'); m.scrollTop = m.scrollHeight;
+  }
+}
+function sendChat(e) {
+  e.preventDefault();
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text || !socket || !roomCode) return;
+  socket.emit('chat', { code: roomCode, text });
+  inp.value = '';
+}
+function addChatMsg({ name, text }) {
+  const m = document.getElementById('chat-msgs');
+  const row = document.createElement('div');
+  row.className = 'chat-row' + (name === myName ? ' me' : '');
+  row.innerHTML = '<span class="chat-name">' + esc(name) + '</span><span class="chat-text">' + esc(text) + '</span>';
+  m.appendChild(row);
+  m.scrollTop = m.scrollHeight;
+  if (document.getElementById('chat').classList.contains('closed')) document.getElementById('btn-chat').classList.add('chat-unread');
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 
 // ── LOBBY ACTIONS ──
 function switchTab(t) {
@@ -334,7 +365,7 @@ function betChip(pos, center, amt) {
   d.className = 'tbet';
   d.style.left = (px + (center.x - px) * 0.42) + '%';
   d.style.top = (py + (center.y - py) * 0.42) + '%';
-  d.innerHTML = '<span class="chip"></span>' + amt;
+  d.textContent = amt;
   return d;
 }
 
@@ -350,7 +381,7 @@ function renderGame(state) {
     if (i < state.board.length) bc.appendChild(cardEl(state.board[i], 'lg'));
     else { const ph = document.createElement('div'); ph.className='board-slot'; bc.appendChild(ph); }
   }
-  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="chip"></span>' + state.pot : '';
+  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="cpot-l">POT</span>' + state.pot : '';
   document.getElementById('cstreet').textContent = state.street ? state.street.toUpperCase() : '';
 
   const me = state.seats.find(s => s && s.isYou);
@@ -463,11 +494,6 @@ function renderGame(state) {
       showRaisePanel(false);
       document.getElementById('abar').classList.add('off');
     }
-
-    if (me.lastAction) {
-      const lbl = document.getElementById('p-actlbl');
-      lbl.textContent = me.lastAction;
-    }
   }
 }
 
@@ -546,12 +572,23 @@ document.addEventListener('keydown', e => {
   if (typing) return;
   const k = e.key.toLowerCase();
   const enabled = id => { const b = document.getElementById(id); return b && !b.disabled; };
+  const canCheck = enabled('btn-check');
   if (k === 'f') { e.preventDefault(); send('fold'); }
-  else if (k === 'k' && enabled('btn-check')) { e.preventDefault(); send('check'); }
-  else if (k === 'c' && enabled('btn-call')) { e.preventDefault(); send('call'); }
+  else if (k === 'k' && canCheck) { e.preventDefault(); send('check'); }
+  // C = call when facing a bet; when nobody has bet yet, C makes the minimum bet
+  else if (k === 'c') { e.preventDefault(); if (enabled('btn-call')) send('call'); else if (canCheck) minRaise(); }
+  else if (k === 'm') { e.preventDefault(); minRaise(); }          // M = instant minimum raise/bet
   else if (k === 'r' && enabled('btn-raise-open')) { e.preventDefault(); openRaise(); }
   else if (k === 'a' && me.chips > 0) { e.preventDefault(); send('allin'); }
 });
+
+// Fire an immediate minimum-legal raise/bet (no panel).
+function minRaise() {
+  if (!raiseCtx) return;
+  document.getElementById('rslider').value = raiseCtx.lo;
+  send('raise');
+  showRaisePanel(false);
+}
 
 function endSession() {
   if (!socket || !roomCode) return;
@@ -572,6 +609,7 @@ function buildResults(you, leaderboard, handNum) {
   const top = leaderboard[0];
   document.getElementById('res-sub').textContent = handNum + ' hands played · '
     + (top.name === you.name ? 'you finished on top 🏆' : top.name + ' finished on top');
+  window.__hl = you.stat.handLog || []; // for the clickable range grid
   buildLB(leaderboard, you.name);
   const grid = document.getElementById('res-grid');
   grid.innerHTML = '';
@@ -584,26 +622,36 @@ function gtoAcc(stat) {
 }
 
 function buildLB(players, youName) {
-  const max = Math.max(...players.map(p => p.chips)) || 1;
   const medals = ['🥇','🥈','🥉'];
-  let html = '<h3>🏆 Leaderboard</h3>';
+  const max = Math.max(...players.map(p => p.chips)) || 1;
+  let html = '<h3>🏆 Final standings</h3>';
   players.forEach((p, i) => {
-    const net = p.net;
+    const net = p.net, netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu';
     const wr = p.handsPlayed ? Math.round(p.wins / p.handsPlayed * 100) : 0;
-    const gto = p.gtoAcc;
-    const bw = Math.round(p.chips / max * 100);
-    html += '<div class="lb-row' + (p.name === youName ? ' lb-you' : '') + '">'
-      + '<div class="lb-pos">' + (medals[i] || '#' + (i+1)) + '</div>'
-      + '<div class="lb-name">' + p.name + (p.name === youName ? ' <span class="lb-youtag">YOU</span>' : '') + '</div>'
-      + '<div class="lb-bars">'
-      + '<div class="lb-br"><span>Chips</span><div class="lb-bt"><div class="lb-bf" style="width:' + bw + '%;background:var(--gold)"></div></div><span class="lb-bv" style="color:var(--gold-l)">' + p.chips + '</span></div>'
-      + '<div class="lb-br"><span>Win %</span><div class="lb-bt"><div class="lb-bf" style="width:' + wr + '%;background:#2ecc71"></div></div><span class="lb-bv" style="color:#2ecc71">' + wr + '%</span></div>'
-      + '<div class="lb-br"><span>GTO</span><div class="lb-bt"><div class="lb-bf" style="width:' + gto + '%;background:#3498db"></div></div><span class="lb-bv" style="color:#3498db">' + gto + '%</span></div>'
-      + '</div>'
-      + '<div class="lb-net ' + (net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu') + '">' + (net > 0 ? '+' : '') + net + '</div>'
+    html += '<div class="pod-row' + (p.name === youName ? ' lb-you' : '') + '">'
+      + '<div class="pod-pos">' + (medals[i] || '#' + (i+1)) + '</div>'
+      + '<div class="pod-main"><div class="pod-name">' + esc(p.name) + (p.name === youName ? ' <span class="lb-youtag">YOU</span>' : '') + '</div>'
+      + '<div class="pod-bar"><div class="pod-bar-f" style="width:' + Math.round(p.chips / max * 100) + '%"></div></div></div>'
+      + '<div class="pod-meta"><div class="pod-chips">' + p.chips + '</div><div class="pod-sub">' + wr + '% won · 🏆' + p.wins + '</div></div>'
+      + '<div class="pod-net ' + netCls + '">' + (net > 0 ? '+' : '') + net + '</div>'
       + '</div>';
   });
   document.getElementById('res-lb').innerHTML = html;
+}
+
+// Detail panel for a clicked range-grid cell.
+function showCombo(combo) {
+  const el = document.getElementById('rg-detail'); if (!el) return;
+  const hands = (window.__hl || []).filter(h => h.combo === combo);
+  if (!hands.length) { el.innerHTML = '<div class="rgd-empty">' + combo + ' — not dealt this session</div>'; return; }
+  el.innerHTML = '<div class="rgd-t">' + combo + ' · ' + hands.length + ' hand' + (hands.length > 1 ? 's' : '') + '</div>'
+    + hands.map(h => {
+      const cards = h.cards.map(c => cardHTML(c, 'xs')).join('');
+      const board = (h.board || []).map(c => cardHTML(c, 'xs')).join('');
+      const res = h.won ? '<span class="hh-res hw">+' + h.winAmt + '</span>' : h.folded ? '<span class="hh-res hf">Fold</span>' : '<span class="hh-res hl">Lost</span>';
+      return '<div class="rgd-row"><span class="rgd-act ' + h.pfAction + '">' + h.pfAction + '</span>'
+        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res + '</div>';
+    }).join('');
 }
 
 // 13×13 starting-hand grid showing how the player actually played each combo preflop.
@@ -626,14 +674,15 @@ function buildRangeGrid(handLog) {
   for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
     const combo = i === j ? RANKS13[i] + RANKS13[j] : i < j ? RANKS13[i] + RANKS13[j] + 's' : RANKS13[j] + RANKS13[i] + 'o';
     const a = pick(combo);
-    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '" title="' + combo + (a ? ' · ' + a : '') + '">' + combo + '</div>';
+    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '"'
+      + (a ? ' onclick="showCombo(\'' + combo + '\')"' : '') + ' title="' + combo + (a ? ' · ' + a + ' (click)' : '') + '">' + combo + '</div>';
   }
-  return '<div class="rg-wrap"><div class="rg-t">Your preflop play (by hand)</div>'
+  return '<div class="rg-wrap"><div class="rg-t">Your preflop play — tap a hand to see it</div>'
     + '<div class="rg-grid">' + cells + '</div>'
     + '<div class="rg-legend">'
     + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
     + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
-    + '</div></div>';
+    + '</div><div id="rg-detail"></div></div>';
 }
 
 // circular accuracy gauge with a letter grade
@@ -695,38 +744,35 @@ function buildPC(p) {
       const col = a >= 70 ? '#2ecc71' : a >= 50 ? '#e8cc7a' : '#e74c3c';
       return '<div class="gsa"><div class="gsa-l">' + st + '</div><div class="gsa-v" style="color:' + col + '">' + a + '%</div></div>';
     }).join('') + '</div>';
-    s.gtoDecisions.slice(-8).forEach(d => {
-      const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : '');
-      html += '<div class="gto-dec"><div class="gto-dot ' + (d.correct?'c':'w') + '"></div>'
-        + '<div class="gto-st">' + d.street + '</div>'
-        + '<div class="gto-note">' + d.note + '</div>'
-        + (badge ? '<div class="gto-badge">' + badge + '</div>' : '') + '</div>';
-    });
+    html += '</div>';
+
+    // Biggest leaks — your worst decisions, with the hand + board shown
+    const byHand = {}; (s.handLog || []).forEach(h => byHand[h.num] = h);
+    const mistakes = s.gtoDecisions.filter(d => !d.correct).slice(-5).reverse();
+    html += '<div class="mk-wrap"><div class="mk-t">🔍 Biggest leaks</div>';
+    if (!mistakes.length) {
+      html += '<div class="mk-empty">No major leaks — clean session! 🎉</div>';
+    } else {
+      mistakes.forEach(d => {
+        const hl = byHand[d.hand] || { cards: [], board: [] };
+        const n = d.street === 'preflop' ? 0 : d.street === 'flop' ? 3 : d.street === 'turn' ? 4 : 5;
+        const cards = (hl.cards || []).map(c => cardHTML(c, 'xs')).join('');
+        const board = (hl.board || []).slice(0, n).map(c => cardHTML(c, 'xs')).join('');
+        const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : '');
+        html += '<div class="mk-row"><div class="mk-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</div>'
+          + '<div class="mk-body"><div class="mk-st">' + d.street + ' · ' + d.action + '</div><div class="mk-note">' + d.note + '</div></div>'
+          + (badge ? '<div class="gto-badge">' + badge + '</div>' : '') + '</div>';
+      });
+    }
     html += '</div>';
   }
 
-  // Preflop range grid
+  // Preflop range grid (clickable — replaces the old hand-history list)
   html += buildRangeGrid(s.handLog || []);
 
-  // Hand history
-  if (s.handLog && s.handLog.length) {
-    html += '<div class="hh-wrap"><div class="hh-t">Hand history</div>';
-    s.handLog.forEach(h => {
-      const rc = h.won?'hw':h.ghostWin?'hg':h.folded?'hf':'hl';
-      const rt = h.won?'Won':h.ghostWin?'👻':'Folded'===(''+h.folded*1&&'Folded')?'Folded':'Lost';
-      const rtx = h.won?'Won':h.ghostWin?'👻 Ghost':h.folded?'Folded':'Lost';
-      html += '<div class="hh-row"><span class="hh-n">#' + h.num + '</span>'
-        + '<span class="hh-c">' + cardHTML(h.cards[0],'xs') + cardHTML(h.cards[1],'xs') + '</span>'
-        + '<span class="hh-p">' + h.pfLabel + '</span>'
-        + '<span class="hh-amt">' + (h.won&&h.winAmt?'+'+h.winAmt:'') + '</span>'
-        + '<span class="hh-res ' + rc + '">' + rtx + '</span></div>';
-    });
-    html += '</div>';
-  }
-
-  // Chart
-  html += '<div class="chart-wrap"><div class="chart-t">Chip history</div>'
-    + '<canvas id="ch-' + p.name.replace(/[^a-z0-9]/gi,'_') + '" style="width:100%;height:56px;display:block"></canvas>'
+  // Profit curve
+  html += '<div class="chart-wrap"><div class="chart-t">Profit curve</div>'
+    + '<canvas id="ch-' + p.name.replace(/[^a-z0-9]/gi,'_') + '" style="width:100%;height:72px;display:block"></canvas>'
     + '</div>';
 
   card.innerHTML = html;
@@ -734,26 +780,48 @@ function buildPC(p) {
   return card;
 }
 
+// Profit curve: net chips vs the starting stack, zero baseline, green up / red down, hover tooltip.
 function drawChart(id, data) {
   const c = document.getElementById(id);
   if (!c || !data || data.length < 2) return;
-  c.width = c.offsetWidth || 300; c.height = 56;
-  const ctx = c.getContext('2d');
-  const w = c.width, h = c.height;
-  const mn = Math.min(...data) * .93, mx = Math.max(...data) * 1.07;
-  const rng = mx - mn || 1;
-  const sx = i => (i/(data.length-1))*(w-4)+2;
-  const sy = v => h-2-((v-mn)/rng)*(h-6);
-  ctx.clearRect(0,0,w,h);
-  ctx.beginPath(); ctx.moveTo(sx(0),sy(data[0]));
-  data.forEach((v,i)=>ctx.lineTo(sx(i),sy(v)));
-  ctx.lineTo(sx(data.length-1),h); ctx.lineTo(sx(0),h); ctx.closePath();
-  const g = ctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'rgba(201,168,76,.22)'); g.addColorStop(1,'rgba(201,168,76,.02)');
-  ctx.fillStyle=g; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(sx(0),sy(data[0]));
-  data.forEach((v,i)=>ctx.lineTo(sx(i),sy(v)));
-  ctx.strokeStyle='#c9a84c'; ctx.lineWidth=1.5; ctx.lineJoin='round'; ctx.stroke();
+  const start = data[0], net = data.map(v => v - start);
+  c.width = c.offsetWidth || 300; c.height = 72;
+  const ctx = c.getContext('2d'), w = c.width, h = c.height;
+  const mn = Math.min(0, ...net), mx = Math.max(0, ...net), rng = (mx - mn) || 1;
+  const sx = i => (i / (net.length - 1)) * (w - 6) + 3;
+  const sy = v => h - 5 - ((v - mn) / rng) * (h - 12);
+  const y0 = sy(0), finalNet = net[net.length - 1];
+  const up = finalNet >= 0, line = up ? '#2ecc71' : '#e74c3c';
+  function render(hi) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(w, y0); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(sx(0), sy(net[0]));
+    net.forEach((v, i) => ctx.lineTo(sx(i), sy(v)));
+    ctx.lineTo(sx(net.length - 1), y0); ctx.lineTo(sx(0), y0); ctx.closePath();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    if (up) { g.addColorStop(0, 'rgba(46,204,113,.3)'); g.addColorStop(1, 'rgba(46,204,113,.02)'); }
+    else { g.addColorStop(0, 'rgba(231,76,60,.04)'); g.addColorStop(1, 'rgba(231,76,60,.3)'); }
+    ctx.fillStyle = g; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(sx(0), sy(net[0]));
+    net.forEach((v, i) => ctx.lineTo(sx(i), sy(v)));
+    ctx.strokeStyle = line; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
+    if (hi != null) {
+      ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.moveTo(sx(hi), 0); ctx.lineTo(sx(hi), h); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(sx(hi), sy(net[hi]), 3, 0, 7); ctx.fill();
+    }
+  }
+  render(null);
+  let tip = document.getElementById('chart-tip');
+  if (!tip) { tip = document.createElement('div'); tip.id = 'chart-tip'; document.body.appendChild(tip); }
+  c.onmousemove = ev => {
+    const r = c.getBoundingClientRect();
+    let i = Math.round(((ev.clientX - r.left) - 3) / (w - 6) * (net.length - 1));
+    i = Math.max(0, Math.min(net.length - 1, i)); render(i);
+    const v = net[i]; tip.textContent = 'Hand ' + i + ': ' + (v >= 0 ? '+' : '') + v;
+    tip.style.left = (ev.clientX + 12) + 'px'; tip.style.top = (ev.clientY - 8) + 'px'; tip.style.opacity = '1';
+  };
+  c.onmouseleave = () => { render(null); if (tip) tip.style.opacity = '0'; };
 }
 
 // ── UTILS ──
