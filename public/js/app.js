@@ -45,48 +45,45 @@ let raiseCtx = null;
 let myTurnWas = false;
 let prevHandNum = 0, prevActions = {};
 
-// ── SOUND (synthesized via Web Audio — no files) ──
+// ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
+const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/card.mp3', call:'/sounds/chips.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/flush.mp3', allin:'/sounds/idiot.mp3' };
+const SOUND_CAP = { fold: 1.8 };       // trim the long flush clip
+const SOUND_GAIN = { check: 0.45, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.8, allin: 0.95 };
 const sfx = (() => {
   let ctx = null, muted = localStorage.getItem('pt-muted') === '1';
+  const buffers = {};
+  function preload() {
+    Object.entries(SOUND_FILES).forEach(([k, url]) => {
+      if (buffers[k] !== undefined) return;
+      buffers[k] = null;
+      fetch(url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(b => buffers[k] = b).catch(() => {});
+    });
+  }
   function ensure() {
-    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } preload(); }
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
-  function tone(f, t0, dur, type, gain, sweep) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
-    if (sweep) o.frequency.exponentialRampToValueAtTime(Math.max(40, sweep), t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
-  }
-  function noise(t0, dur, gain, hp) {
-    const n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 800;
-    const g = ctx.createGain(); g.gain.value = gain;
-    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t0); src.stop(t0 + dur);
-  }
-  function chips(t0, n, base) { for (let i = 0; i < n; i++) { const t = t0 + i * 0.045; tone((base || 1500) + Math.random() * 400, t, 0.06, 'triangle', 0.1); noise(t, 0.03, 0.04, 2500); } }
+  function tone(f, t0, dur, gain) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02); }
   return {
     get muted() { return muted; },
-    toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); return muted; },
+    toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); if (!muted) ensure(); return muted; },
+    init() { ensure(); },
     play(name) {
-      if (muted) return; if (!ensure()) return; const t = ctx.currentTime;
-      if (name === 'deal') for (let i = 0; i < 4; i++) noise(t + i * 0.08, 0.05, 0.05, 1800);
-      else if (name === 'check') { tone(200, t, 0.08, 'sine', 0.16, 150); tone(180, t + 0.09, 0.08, 'sine', 0.12, 140); }
-      else if (name === 'call') chips(t, 2, 1400);
-      else if (name === 'raise') chips(t, 3, 1650);
-      else if (name === 'fold') noise(t, 0.18, 0.08, 1100);
-      else if (name === 'allin') { tone(120, t, 0.5, 'sawtooth', 0.16, 60); chips(t + 0.05, 5, 1800); }
-      else if (name === 'win') [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 'triangle', 0.14));
+      if (muted || !ensure()) return;
+      if (name === 'win') { const t = ctx.currentTime;[523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 0.13)); return; }
+      const buf = buffers[name];
+      if (!buf) { if (buffers[name] === undefined) preload(); return; }
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = SOUND_GAIN[name] != null ? SOUND_GAIN[name] : 0.8;
+      src.connect(g); g.connect(ctx.destination); src.start();
+      if (SOUND_CAP[name]) { g.gain.setValueAtTime(g.gain.value, ctx.currentTime + SOUND_CAP[name] - 0.15); g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + SOUND_CAP[name]); src.stop(ctx.currentTime + SOUND_CAP[name]); }
     }
   };
 })();
 function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
+// unlock + preload audio on the first user interaction
+window.addEventListener('pointerdown', () => sfx.init(), { once: true });
 
 // Play sounds by diffing successive states (deal on new hand, per-seat actions).
 function soundsFromState(state) {
@@ -171,8 +168,8 @@ function initSocket() {
     document.getElementById('sp-bb').value = bb;
   });
 
-  socket.on('session_ended', ({ stats, handNum }) => {
-    buildResults(stats, handNum);
+  socket.on('session_ended', ({ you, leaderboard, handNum }) => {
+    buildResults(you, leaderboard, handNum);
     showScreen('s-results');
   });
 
@@ -487,6 +484,7 @@ function showRaisePanel(open) {
 }
 function openRaise() {
   if (!raiseCtx) return;
+  document.getElementById('rslider').value = raiseCtx.lo; // always open at the minimum raise
   showRaisePanel(true);
   onRaiseInput('slider');
 }
@@ -569,14 +567,15 @@ function setThink(t) {
 }
 
 
-// ── RESULTS ──
-function buildResults(stats, handNum) {
-  stats.sort((a, b) => b.chips - a.chips);
-  document.getElementById('res-sub').textContent = handNum + ' hands played · ' + stats[0].name + ' finishes on top';
-  buildLB(stats);
+// ── RESULTS (your own detailed stats + a shared leaderboard) ──
+function buildResults(you, leaderboard, handNum) {
+  const top = leaderboard[0];
+  document.getElementById('res-sub').textContent = handNum + ' hands played · '
+    + (top.name === you.name ? 'you finished on top 🏆' : top.name + ' finished on top');
+  buildLB(leaderboard, you.name);
   const grid = document.getElementById('res-grid');
   grid.innerHTML = '';
-  stats.forEach(p => grid.appendChild(buildPC(p)));
+  grid.appendChild(buildPC(you)); // only your own detailed breakdown
 }
 
 function gtoAcc(stat) {
@@ -584,18 +583,18 @@ function gtoAcc(stat) {
   return Math.round(stat.gtoDecisions.filter(d => d.correct).length / stat.gtoDecisions.length * 100);
 }
 
-function buildLB(players) {
+function buildLB(players, youName) {
   const max = Math.max(...players.map(p => p.chips)) || 1;
   const medals = ['🥇','🥈','🥉'];
   let html = '<h3>🏆 Leaderboard</h3>';
   players.forEach((p, i) => {
-    const net = p.chips - p.stat.startChips;
-    const wr = p.stat.handsPlayed ? Math.round(p.stat.handsWon / p.stat.handsPlayed * 100) : 0;
-    const gto = gtoAcc(p.stat);
+    const net = p.net;
+    const wr = p.handsPlayed ? Math.round(p.wins / p.handsPlayed * 100) : 0;
+    const gto = p.gtoAcc;
     const bw = Math.round(p.chips / max * 100);
-    html += '<div class="lb-row">'
+    html += '<div class="lb-row' + (p.name === youName ? ' lb-you' : '') + '">'
       + '<div class="lb-pos">' + (medals[i] || '#' + (i+1)) + '</div>'
-      + '<div class="lb-name">' + p.name + '</div>'
+      + '<div class="lb-name">' + p.name + (p.name === youName ? ' <span class="lb-youtag">YOU</span>' : '') + '</div>'
       + '<div class="lb-bars">'
       + '<div class="lb-br"><span>Chips</span><div class="lb-bt"><div class="lb-bf" style="width:' + bw + '%;background:var(--gold)"></div></div><span class="lb-bv" style="color:var(--gold-l)">' + p.chips + '</span></div>'
       + '<div class="lb-br"><span>Win %</span><div class="lb-bt"><div class="lb-bf" style="width:' + wr + '%;background:#2ecc71"></div></div><span class="lb-bv" style="color:#2ecc71">' + wr + '%</span></div>'
@@ -637,6 +636,18 @@ function buildRangeGrid(handLog) {
     + '</div></div>';
 }
 
+// circular accuracy gauge with a letter grade
+function gtoGauge(acc) {
+  const grade = acc >= 85 ? 'A+' : acc >= 75 ? 'A' : acc >= 65 ? 'B' : acc >= 55 ? 'C' : acc >= 45 ? 'D' : 'F';
+  const col = acc >= 70 ? '#2ecc71' : acc >= 50 ? '#e8cc7a' : '#e74c3c';
+  const r = 42, C = 2 * Math.PI * r, off = C * (1 - acc / 100);
+  return '<svg class="gauge" viewBox="0 0 100 100">'
+    + '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="9"/>'
+    + '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + off + '" transform="rotate(-90 50 50)"/>'
+    + '<text x="50" y="48" text-anchor="middle" class="gauge-grade" fill="' + col + '">' + grade + '</text>'
+    + '<text x="50" y="66" text-anchor="middle" class="gauge-pct">' + acc + '%</text></svg>';
+}
+
 function buildPC(p) {
   const s = p.stat;
   const net = p.chips - s.startChips;
@@ -672,10 +683,10 @@ function buildPC(p) {
 
   // GTO
   if (s.gtoDecisions && s.gtoDecisions.length) {
-    html += '<div class="gto-wrap"><div class="gto-t">GTO accuracy</div>'
-      + '<div class="gto-big ' + gtoCls + '">' + gto + '%</div>'
-      + '<div class="gto-lbl">' + gtoLbl + '</div>'
-      + '<div class="gto-bar-t"><div class="gto-bar-f" style="width:' + gto + '%;background:' + gtoCol + '"></div></div>';
+    html += '<div class="gto-wrap"><div class="gto-t">GTO report card</div>'
+      + '<div class="gto-hero">' + gtoGauge(gto)
+      + '<div class="gto-hero-txt"><div class="gto-grade-lbl ' + gtoCls + '">' + gtoLbl + '</div>'
+      + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>';
     // per-street accuracy
     html += '<div class="gto-streetacc">' + ['preflop','flop','turn','river'].map(st => {
       const ds = s.gtoDecisions.filter(d => d.street === st);

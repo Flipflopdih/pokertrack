@@ -114,10 +114,19 @@ io.on('connection', socket => {
     if (!room) return;
     room.over = true;
     if (room.actionTimer) clearTimeout(room.actionTimer);
-    const stats = room.seats.filter(Boolean).map(p => ({
-      name: p.name, seatIndex: p.seatIndex, chips: p.chips, stat: p.stat
-    }));
-    io.to(code).emit('session_ended', { stats, handNum: room.handNum });
+    const players = room.seats.filter(Boolean);
+    const acc = st => { const d = st.gtoDecisions; return d.length ? Math.round(d.filter(x => x.correct).length / d.length * 100) : 0; };
+    const leaderboard = players.map(p => ({
+      name: p.name, seatIndex: p.seatIndex, chips: p.chips,
+      net: p.chips - p.stat.startChips, wins: p.stat.handsWon,
+      handsPlayed: p.stat.handsPlayed, gtoAcc: acc(p.stat)
+    })).sort((a, b) => b.chips - a.chips);
+    // each player gets only their own detailed stats + the shared leaderboard
+    players.forEach(p => {
+      if (p.socketId) io.to(p.socketId).emit('session_ended', {
+        you: { name: p.name, chips: p.chips, stat: p.stat }, leaderboard, handNum: room.handNum
+      });
+    });
     deleteRoom(code);
   });
 
