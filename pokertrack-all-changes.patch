@@ -2469,10 +2469,10 @@ index 0edbb13..f7498e5 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..0805307
+index 0000000..c813b5f
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,1036 @@
+@@ -0,0 +1,1038 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2619,12 +2619,14 @@ index 0000000..0805307
 +  });
 +
 +  socket.on('state_public', state => {
-+    lastState = state;
 +    if (isSpectator) {
++      lastState = state;
 +      if (state.phase === 'playing') { showScreen('s-game'); renderGame(state); }
 +      else { showScreen('s-seats'); renderSeatChooser(state); }
 +      return;
 +    }
++    // seated players: refresh the seat chooser from the public view, but DON'T
++    // overwrite lastState (the private 'state' carries isHost / your cards).
 +    const cur = document.querySelector('.screen.active').id;
 +    if (cur === 's-seats') renderSeatChooser(state);
 +  });

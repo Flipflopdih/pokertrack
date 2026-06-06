@@ -144,12 +144,14 @@ function initSocket() {
   });
 
   socket.on('state_public', state => {
-    lastState = state;
     if (isSpectator) {
+      lastState = state;
       if (state.phase === 'playing') { showScreen('s-game'); renderGame(state); }
       else { showScreen('s-seats'); renderSeatChooser(state); }
       return;
     }
+    // seated players: refresh the seat chooser from the public view, but DON'T
+    // overwrite lastState (the private 'state' carries isHost / your cards).
     const cur = document.querySelector('.screen.active').id;
     if (cur === 's-seats') renderSeatChooser(state);
   });
