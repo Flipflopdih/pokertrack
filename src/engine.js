@@ -1,6 +1,6 @@
 // ── Game engine: rooms, dealing, betting, showdown, side pots ──
-const { makeDeck, shuffle, evalBest, cmpE } = require('./cards');
-const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO } = require('./gto');
+const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
+const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown } = require('./gto');
 
 const rooms = {};
 let io = null;
@@ -9,7 +9,11 @@ function attach(server_io) { io = server_io; } // wire socket.io in once at star
 function makeCode() { return Math.random().toString(36).substr(2, 6).toUpperCase(); }
 
 function mkStat(startChips) {
-  return { startChips, chips: startChips, handsPlayed: 0, handsWon: 0, vpip: 0, folds: 0, ghostWins: 0, luckPts: 0, luckHands: 0, gtoDecisions: [], chipHistory: [startChips], handLog: [] };
+  return {
+    startChips, chips: startChips, handsPlayed: 0, handsWon: 0, vpip: 0, folds: 0, ghostWins: 0,
+    luckNum: 0, luckDen: 0, luckChips: 0, // pot-weighted realized-equity luck
+    gtoDecisions: [], chipHistory: [startChips], handLog: []
+  };
 }
 
 function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
@@ -36,7 +40,8 @@ function seatPlayer(room, seatIndex, name, socketId, chips) {
   room.seats[seatIndex] = {
     id: socketId, name, socketId, chips, stat: mkStat(chips),
     cards: [], bet: 0, committed: 0, folded: false,
-    lastAction: '', seatIndex, curPF: null, connected: true
+    lastAction: '', seatIndex, curPF: null, connected: true,
+    sawFlop: false, pfAction: null
   };
 }
 
@@ -55,10 +60,19 @@ function nextSeat(room, fromIdx) {
   return fromIdx;
 }
 
+const RANK_NAME = { A: 'Ace', K: 'King', Q: 'Queen', J: 'Jack', T: 'Ten', 9: 'Nine', 8: 'Eight', 7: 'Seven', 6: 'Six', 5: 'Five', 4: 'Four', 3: 'Three', 2: 'Two' };
+function madeHandLabel(cards, board) {
+  if (!cards || cards.length < 2 || !cards[0]) return '';
+  if (board.length >= 3) return evalBest([...cards, ...board]).name;
+  if (cards[0].r === cards[1].r) return 'Pair of ' + RANK_NAME[cards[0].r] + 's';
+  const hi = RV[cards[0].r] >= RV[cards[1].r] ? cards[0].r : cards[1].r;
+  return RANK_NAME[hi] + ' high';
+}
+
 function seatView(room, s, i, socketId) {
   return {
     seatIndex: i, id: s.id, name: s.name, chips: s.chips, bet: s.bet,
-    folded: s.folded, lastAction: s.lastAction,
+    folded: s.folded, lastAction: s.lastAction, wins: s.stat.handsWon,
     isDealer: i === room.dealer,
     isTurn: !room.over && room.queue[0] === i,
     isYou: socketId != null && s.socketId === socketId,
@@ -68,11 +82,13 @@ function seatView(room, s, i, socketId) {
 }
 
 function buildView(room, socketId) {
+  const me = socketId != null ? room.seats.find(s => s && s.socketId === socketId) : null;
   return {
     code: room.code, handNum: room.handNum, pot: room.pot, board: room.board,
     street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
     sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
     isHost: room.hostId === socketId,
+    myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
     seats: room.seats.map((s, i) => s ? seatView(room, s, i, socketId) : null)
   };
 }
@@ -116,6 +132,7 @@ function dealHand(room) {
 
   players.forEach(p => {
     p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
+    p.sawFlop = false; p.pfAction = null;
     if (p.chips <= 0) p.chips = room.startChips;
   });
 
@@ -125,10 +142,7 @@ function dealHand(room) {
 
   for (let i = 0; i < 2; i++) players.forEach(p => p.cards.push(deck[room.di++]));
 
-  players.forEach(p => {
-    const ps = pfStr(p.cards[0], p.cards[1]);
-    p.stat.luckPts += ps.lp; p.stat.luckHands++; p.curPF = ps;
-  });
+  players.forEach(p => { p.curPF = pfStr(p.cards[0], p.cards[1]); });
 
   // Heads-up: the dealer is the small blind and acts first preflop.
   let sbIdx, bbIdx, startIdx;
@@ -234,24 +248,26 @@ function trackGTO(room, player, action) {
     ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
   }
 
+  // remember the player's strongest preflop action (for the range grid)
+  if (room.street === 'preflop') {
+    const prec = { fold: 0, check: 1, call: 2, raise: 3 };
+    if (player.pfAction == null || prec[action] > prec[player.pfAction]) player.pfAction = action;
+  }
+
   const res = scoreGTO(ctx);
-  const decision = {
+  player.stat.gtoDecisions.push({
     hand: room.handNum, street: room.street, action, position,
     correct: res.correct, note: res.note,
     equity: res.eq != null ? Math.round(res.eq * 100) : null,
     chen: res.chen
-  };
-  player.stat.gtoDecisions.push(decision);
-
-  // live coaching: privately nudge the player who just acted
-  if (player.socketId && io) io.to(player.socketId).emit('gto_feedback', decision);
+  });
 }
 
 function advStreet(room) {
   filledSeats(room).forEach(p => p.bet = 0);
   room.curBet = 0;
 
-  if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; }
+  if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; filledSeats(room).forEach(p => { if (!p.folded) p.sawFlop = true; }); }
   else if (room.street === 'flop') { room.board.push(room.deck[room.di++]); room.street = 'turn'; }
   else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; }
   else { endHand(room); return; }
@@ -317,19 +333,44 @@ function endHand(room) {
     }
   });
 
+  // Pot-weighted "run-good" luck: compare each contesting hand's result to its
+  // flop equity vs the opponents who actually saw the flop. Big pots count more.
+  const flopSeers = filledSeats(room).filter(p => p.sawFlop);
+  const flop = room.board.slice(0, 3);
+
   filledSeats(room).forEach(p => {
     p.stat.handsPlayed++;
     p.stat.chips = p.chips;
     p.stat.chipHistory.push(p.chips);
-    if (p.curPF) {
-      p.stat.handLog.push({
-        num: room.handNum, cards: [...p.cards], board: [...room.board],
-        pfLabel: p.curPF.label, pfPts: p.curPF.pts,
-        won: winnings[p.seatIndex] > 0, folded: p.folded,
-        ghostWin: p.folded && room.board.length >= 3 && winner && !winner.folded && cmpE(evalBest([...p.cards, ...room.board]), evalBest([...winner.cards, ...room.board])) > 0,
-        winAmt: winnings[p.seatIndex] || 0
-      });
+    if (!p.curPF) return;
+
+    const opps = flopSeers.filter(o => o !== p);
+    let perHand, weight, realizedChips = 0;
+    if (p.sawFlop && opps.length && room.board.length >= 3) {
+      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
+      realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
+      perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
+      weight = room.bb ? room.pot / room.bb : 1;
+    } else {
+      // preflop-only: card-dealing luck (dampened, light weight)
+      const cp = Math.max(0, Math.min(1, (chenScore(p.cards[0], p.cards[1]) + 2) / 22));
+      perHand = (cp - 0.5);
+      weight = 1;
     }
+    p.stat.luckNum += perHand * weight;
+    p.stat.luckDen += weight;
+    p.stat.luckChips += realizedChips;
+
+    p.stat.handLog.push({
+      num: room.handNum, cards: [...p.cards], board: [...room.board],
+      pfLabel: p.curPF.label, pfPts: p.curPF.pts,
+      combo: comboLabel(p.cards[0], p.cards[1]),
+      pfAction: p.pfAction || (p.folded ? 'fold' : 'check'),
+      luckPct: Math.round((perHand + 1) / 2 * 100),
+      won: winnings[p.seatIndex] > 0, folded: p.folded,
+      ghostWin: p.folded && room.board.length >= 3 && winner && !winner.folded && cmpE(evalBest([...p.cards, ...room.board]), evalBest([...winner.cards, ...room.board])) > 0,
+      winAmt: winnings[p.seatIndex] || 0
+    });
   });
 
   broadcast(room);

@@ -97,11 +97,11 @@
       <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
     </div>
     <div class="tb-right">
+      <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
       <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
       <button class="btn-sm red" onclick="endSession()">End session</button>
     </div>
   </div>
-  <div id="coach"></div>
   <div id="table-wrap">
     <div id="table">
       <div id="table-logo">♠ PokerTrack</div>
@@ -116,9 +116,11 @@
       <div id="p-area">
         <div id="p-hole"></div>
         <div id="p-info">
+          <div id="p-hand"></div>
           <div id="p-namechips">
             <span id="p-nameval">You</span>
             <span id="p-chipsval">—</span>
+            <span id="p-wins" class="tseat-wins"></span>
           </div>
           <div id="p-actlbl"></div>
         </div>

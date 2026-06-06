@@ -1,6 +1,40 @@
 // ── GTO scoring: preflop heuristics (Chen) + postflop Monte-Carlo equity ──
 const { RV, makeDeck, evalBest, cmpE } = require('./cards');
 
+// Canonical starting-hand label, e.g. "AKs", "AKo", "TT", "72o".
+function comboLabel(c1, c2) {
+  const a = RV[c1.r] >= RV[c2.r] ? c1 : c2;
+  const b = RV[c1.r] >= RV[c2.r] ? c2 : c1;
+  if (c1.r === c2.r) return c1.r + c2.r;
+  return a.r + b.r + (c1.s === c2.s ? 's' : 'o');
+}
+
+// Equity of `hole` vs specific known opponent hands, running out the board.
+function equityVsKnown(hole, board, oppHoles, iters) {
+  const used = new Set([...hole, ...board, ...oppHoles.flat()].map(c => c.r + c.s));
+  const base = makeDeck().filter(c => !used.has(c.r + c.s));
+  const need = 5 - board.length;
+  if (need < 0) return null;
+  const runs = need === 0 ? 1 : iters; // board already complete → deterministic
+  let score = 0;
+  for (let i = 0; i < runs; i++) {
+    for (let k = 0; k < need; k++) {
+      const j = k + (0 | Math.random() * (base.length - k));
+      const t = base[k]; base[k] = base[j]; base[j] = t;
+    }
+    const full = board.concat(base.slice(0, need));
+    const me = evalBest(hole.concat(full));
+    let lost = false, tied = false;
+    for (const oh of oppHoles) {
+      const c = cmpE(evalBest(oh.concat(full)), me);
+      if (c > 0) { lost = true; break; }
+      if (c === 0) tied = true;
+    }
+    if (!lost) score += tied ? 0.5 : 1;
+  }
+  return score / runs;
+}
+
 // Legacy "luck"/label helper still used for hand-log labels and the luck meter.
 function pfStr(c1, c2) {
   const v1 = RV[c1.r], v2 = RV[c2.r], hi = Math.max(v1, v2), lo = Math.min(v1, v2);
@@ -132,4 +166,4 @@ function scoreGTO(ctx) {
   return { correct, note, eq, chen: null };
 }
 
-module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO };
+module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown };

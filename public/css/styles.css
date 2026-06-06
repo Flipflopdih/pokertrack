@@ -59,7 +59,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 
 #table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
 #table{position:relative;width:100%;max-width:1180px;min-height:600px;margin:0 auto;
-  background:radial-gradient(ellipse 72% 74% at 50% 42%,#1f5236 0%,#173f29 55%,#0c2218 100%);
+  background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
   padding:54px 100px 64px}
@@ -81,6 +81,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .tseat-plate{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(8,16,11,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:4px 11px;backdrop-filter:blur(4px);max-width:130px}
 .tseat-name{font-size:12px;font-weight:600;color:#ece4d2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:108px;text-align:center}
 .tseat-chips{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold-l)}
+.tseat-wins{font-size:9px;margin-left:5px;color:var(--gold-l);background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:0 4px;font-family:'DM Mono',monospace}
 .tseat-cards{display:flex;gap:3px;margin-top:1px}
 .tseat-act{font-size:9.5px;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,.55);white-space:nowrap;min-height:13px;text-align:center;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .tact-fold{color:#e74c3c}.tact-call{color:#5aa9e6}.tact-check{color:#46d27c}.tact-raise{color:var(--gold-l)}.tact-blind{color:rgba(255,255,255,.4)}.tact-allin{color:#ff6f62;font-weight:600}
@@ -113,6 +114,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 #p-namechips{display:flex;align-items:center;gap:8px;font-size:12px}
 #p-nameval{font-weight:600}
 #p-chipsval{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l)}
+#p-hand{font-size:13px;font-weight:600;color:#1a1a1a;background:linear-gradient(180deg,var(--gold-l),var(--gold));padding:2px 12px;border-radius:9px;box-shadow:0 3px 9px rgba(0,0,0,.4);min-height:13px;letter-spacing:.01em}
+#p-hand:empty{display:none}
 #p-actlbl{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.5);min-height:13px}
 
 /* CARDS — SVG faces (four-colour luxury deck) */
@@ -124,11 +127,11 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .xs{width:28px;height:39px;border-radius:4px}
 .ghost-card{opacity:.32;filter:grayscale(.45)}
 
-/* ACTION BAR — bottom-right, large two-step buttons (PokerNow style) */
-#abar{position:fixed;bottom:18px;right:18px;left:auto;z-index:90;transition:opacity .2s}
-#abar.off{opacity:.28;pointer-events:none;filter:grayscale(.4)}
-#abar-main{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.abtn{position:relative;height:60px;min-width:148px;padding:0 18px;border-radius:13px;border:1.5px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(18,30,22,.96),rgba(8,16,11,.97));color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 7px 20px rgba(0,0,0,.5)}
+/* ACTION BAR — bottom-centre, large clear buttons (PokerNow style) */
+#abar{position:fixed;bottom:20px;left:50%;right:auto;transform:translateX(-50%);z-index:90;transition:opacity .2s}
+#abar.off{opacity:.3;pointer-events:none;filter:grayscale(.4)}
+#abar-main{display:flex;gap:14px}
+.abtn{position:relative;height:66px;min-width:158px;padding:0 22px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:19px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55)}
 .abtn:hover{transform:translateY(-2px)}
 .abtn:active{transform:translateY(0)}
 .abtn .kbd{position:absolute;top:6px;right:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace}
@@ -151,9 +154,9 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 #raise-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
 #raise-actions .abtn{min-width:0;height:52px;font-size:15px}
 @media(max-width:640px){
-  #abar{left:10px;right:10px;bottom:10px}
-  #abar-main{gap:8px}
-  .abtn{min-width:0;width:100%;height:54px;font-size:15px}
+  #abar{left:10px;right:10px;bottom:10px;transform:none}
+  #abar-main{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .abtn{min-width:0;width:100%;height:56px;font-size:16px}
   #abar-raise{width:auto}
 }
 
@@ -229,6 +232,15 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .gsa{flex:1;min-width:58px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 8px;text-align:center}
 .gsa-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.3)}
 .gsa-v{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;margin-top:2px}
+/* preflop range grid */
+.rg-wrap{padding:12px 18px;border-top:1px solid rgba(255,255,255,.05)}
+.rg-t{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);margin-bottom:8px}
+.rg-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:1px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden}
+.rg-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);background:rgba(8,16,11,.55)}
+.rg-c.rg-played{color:#10241a;font-weight:600}
+.rg-legend{display:flex;flex-wrap:wrap;gap:11px;margin-top:9px;font-size:10px;color:rgba(255,255,255,.4)}
+.rg-legend span{display:flex;align-items:center;gap:4px}
+.rg-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
 
 /* live GTO coach (in-game) */
 #coach{position:fixed;left:16px;top:62px;width:300px;max-width:calc(100vw - 32px);background:rgba(8,16,11,.94);border:1px solid rgba(255,255,255,.1);border-left:3px solid rgba(255,255,255,.2);border-radius:12px;padding:12px 14px;z-index:85;box-shadow:0 10px 28px rgba(0,0,0,.55);opacity:0;transform:translateX(-14px);pointer-events:none;transition:opacity .25s,transform .25s}

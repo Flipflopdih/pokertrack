@@ -1102,10 +1102,10 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..b7114db
+index 0000000..b12a13a
 --- /dev/null
 +++ b/public/css/styles.css
-@@ -0,0 +1,266 @@
+@@ -0,0 +1,278 @@
 +*{box-sizing:border-box;margin:0;padding:0}
 +:root{--felt:#1b3d2a;--felt-mid:#1e4830;--felt-dark:#0f2017;--rail:#5c3d1e;--rail-dark:#3a2510;--gold:#c9a84c;--gold-l:#e8cc7a}
 +body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-height:100vh;overflow-x:hidden}
@@ -1167,7 +1167,7 @@ index 0000000..b7114db
 +
 +#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
 +#table{position:relative;width:100%;max-width:1180px;min-height:600px;margin:0 auto;
-+  background:radial-gradient(ellipse 72% 74% at 50% 42%,#1f5236 0%,#173f29 55%,#0c2218 100%);
++  background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
 +  border-radius:300px/180px;border:14px solid #5c3d1e;
 +  box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
 +  padding:54px 100px 64px}
@@ -1189,6 +1189,7 @@ index 0000000..b7114db
 +.tseat-plate{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(8,16,11,.82);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:4px 11px;backdrop-filter:blur(4px);max-width:130px}
 +.tseat-name{font-size:12px;font-weight:600;color:#ece4d2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:108px;text-align:center}
 +.tseat-chips{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold-l)}
++.tseat-wins{font-size:9px;margin-left:5px;color:var(--gold-l);background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:0 4px;font-family:'DM Mono',monospace}
 +.tseat-cards{display:flex;gap:3px;margin-top:1px}
 +.tseat-act{font-size:9.5px;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,.55);white-space:nowrap;min-height:13px;text-align:center;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 +.tact-fold{color:#e74c3c}.tact-call{color:#5aa9e6}.tact-check{color:#46d27c}.tact-raise{color:var(--gold-l)}.tact-blind{color:rgba(255,255,255,.4)}.tact-allin{color:#ff6f62;font-weight:600}
@@ -1221,6 +1222,8 @@ index 0000000..b7114db
 +#p-namechips{display:flex;align-items:center;gap:8px;font-size:12px}
 +#p-nameval{font-weight:600}
 +#p-chipsval{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-l)}
++#p-hand{font-size:13px;font-weight:600;color:#1a1a1a;background:linear-gradient(180deg,var(--gold-l),var(--gold));padding:2px 12px;border-radius:9px;box-shadow:0 3px 9px rgba(0,0,0,.4);min-height:13px;letter-spacing:.01em}
++#p-hand:empty{display:none}
 +#p-actlbl{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.5);min-height:13px}
 +
 +/* CARDS — SVG faces (four-colour luxury deck) */
@@ -1232,11 +1235,11 @@ index 0000000..b7114db
 +.xs{width:28px;height:39px;border-radius:4px}
 +.ghost-card{opacity:.32;filter:grayscale(.45)}
 +
-+/* ACTION BAR — bottom-right, large two-step buttons (PokerNow style) */
-+#abar{position:fixed;bottom:18px;right:18px;left:auto;z-index:90;transition:opacity .2s}
-+#abar.off{opacity:.28;pointer-events:none;filter:grayscale(.4)}
-+#abar-main{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-+.abtn{position:relative;height:60px;min-width:148px;padding:0 18px;border-radius:13px;border:1.5px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(18,30,22,.96),rgba(8,16,11,.97));color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 7px 20px rgba(0,0,0,.5)}
++/* ACTION BAR — bottom-centre, large clear buttons (PokerNow style) */
++#abar{position:fixed;bottom:20px;left:50%;right:auto;transform:translateX(-50%);z-index:90;transition:opacity .2s}
++#abar.off{opacity:.3;pointer-events:none;filter:grayscale(.4)}
++#abar-main{display:flex;gap:14px}
++.abtn{position:relative;height:66px;min-width:158px;padding:0 22px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:19px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55)}
 +.abtn:hover{transform:translateY(-2px)}
 +.abtn:active{transform:translateY(0)}
 +.abtn .kbd{position:absolute;top:6px;right:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace}
@@ -1259,9 +1262,9 @@ index 0000000..b7114db
 +#raise-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
 +#raise-actions .abtn{min-width:0;height:52px;font-size:15px}
 +@media(max-width:640px){
-+  #abar{left:10px;right:10px;bottom:10px}
-+  #abar-main{gap:8px}
-+  .abtn{min-width:0;width:100%;height:54px;font-size:15px}
++  #abar{left:10px;right:10px;bottom:10px;transform:none}
++  #abar-main{display:grid;grid-template-columns:1fr 1fr;gap:8px}
++  .abtn{min-width:0;width:100%;height:56px;font-size:16px}
 +  #abar-raise{width:auto}
 +}
 +
@@ -1337,6 +1340,15 @@ index 0000000..b7114db
 +.gsa{flex:1;min-width:58px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 8px;text-align:center}
 +.gsa-l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.3)}
 +.gsa-v{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;margin-top:2px}
++/* preflop range grid */
++.rg-wrap{padding:12px 18px;border-top:1px solid rgba(255,255,255,.05)}
++.rg-t{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);margin-bottom:8px}
++.rg-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:1px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden}
++.rg-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);background:rgba(8,16,11,.55)}
++.rg-c.rg-played{color:#10241a;font-weight:600}
++.rg-legend{display:flex;flex-wrap:wrap;gap:11px;margin-top:9px;font-size:10px;color:rgba(255,255,255,.4)}
++.rg-legend span{display:flex;align-items:center;gap:4px}
++.rg-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
 +
 +/* live GTO coach (in-game) */
 +#coach{position:fixed;left:16px;top:62px;width:300px;max-width:calc(100vw - 32px);background:rgba(8,16,11,.94);border:1px solid rgba(255,255,255,.1);border-left:3px solid rgba(255,255,255,.2);border-radius:12px;padding:12px 14px;z-index:85;box-shadow:0 10px 28px rgba(0,0,0,.55);opacity:0;transform:translateX(-14px);pointer-events:none;transition:opacity .25s,transform .25s}
@@ -1373,7 +1385,7 @@ index 0000000..b7114db
 +#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 +#toast.show{opacity:1}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..dc090b7 100644
+index 0edbb13..a709ce2 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1647,7 +1659,7 @@ index 0edbb13..dc090b7 100644
      <div class="seat-grid" id="seat-grid"></div>
      <div class="waiting-players" id="waiting-msg">Waiting for more players… share the link to invite friends</div>
      <button class="btn-gold" id="btn-start-game" onclick="startGame()">Start game →</button>
-@@ -272,6 +92,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -272,17 +92,21 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    <div id="topbar">
      <div class="tb-left">
        <span class="tb-logo">♠ PokerTrack</span>
@@ -1655,11 +1667,12 @@ index 0edbb13..dc090b7 100644
        <span class="tb-hand" id="tb-hand">Hand #1</span>
        <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
      </div>
-@@ -280,9 +101,12 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+     <div class="tb-right">
++      <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
+       <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
        <button class="btn-sm red" onclick="endSession()">End session</button>
      </div>
    </div>
-+  <div id="coach"></div>
    <div id="table-wrap">
      <div id="table">
 +      <div id="table-logo">♠ PokerTrack</div>
@@ -1668,7 +1681,19 @@ index 0edbb13..dc090b7 100644
        <div id="tseats"></div>
        <div id="community">
          <div id="cstreet"></div>
-@@ -302,15 +126,31 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -292,9 +116,11 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+       <div id="p-area">
+         <div id="p-hole"></div>
+         <div id="p-info">
++          <div id="p-hand"></div>
+           <div id="p-namechips">
+             <span id="p-nameval">You</span>
+             <span id="p-chipsval">—</span>
++            <span id="p-wins" class="tseat-wins"></span>
+           </div>
+           <div id="p-actlbl"></div>
+         </div>
+@@ -302,15 +128,31 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
      </div>
    </div>
    <div id="abar" class="off">
@@ -1708,7 +1733,7 @@ index 0edbb13..dc090b7 100644
    </div>
  </div>
  
-@@ -329,6 +169,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -329,6 +171,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        </div>
      </div>
      <div class="sp-note">Big blind must be at least 2× small blind</div>
@@ -1717,7 +1742,7 @@ index 0edbb13..dc090b7 100644
      <div class="sp-section">
        <h4>Player chip stacks</h4>
        <div id="sp-players"></div>
-@@ -351,493 +193,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -351,493 +195,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    </div>
  </div>
  
@@ -2214,10 +2239,10 @@ index 0edbb13..dc090b7 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..f155e1d
+index 0000000..d7a33c7
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,687 @@
+@@ -0,0 +1,768 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2263,6 +2288,67 @@ index 0000000..f155e1d
 +let inviteUrl = '';
 +let raiseCtx = null;
 +let myTurnWas = false;
++let prevHandNum = 0, prevActions = {};
++
++// ── SOUND (synthesized via Web Audio — no files) ──
++const sfx = (() => {
++  let ctx = null, muted = localStorage.getItem('pt-muted') === '1';
++  function ensure() {
++    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
++    if (ctx.state === 'suspended') ctx.resume();
++    return ctx;
++  }
++  function tone(f, t0, dur, type, gain, sweep) {
++    const o = ctx.createOscillator(), g = ctx.createGain();
++    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
++    if (sweep) o.frequency.exponentialRampToValueAtTime(Math.max(40, sweep), t0 + dur);
++    g.gain.setValueAtTime(0.0001, t0);
++    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.008);
++    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
++    o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
++  }
++  function noise(t0, dur, gain, hp) {
++    const n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
++    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
++    const src = ctx.createBufferSource(); src.buffer = buf;
++    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 800;
++    const g = ctx.createGain(); g.gain.value = gain;
++    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t0); src.stop(t0 + dur);
++  }
++  function chips(t0, n, base) { for (let i = 0; i < n; i++) { const t = t0 + i * 0.045; tone((base || 1500) + Math.random() * 400, t, 0.06, 'triangle', 0.1); noise(t, 0.03, 0.04, 2500); } }
++  return {
++    get muted() { return muted; },
++    toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); return muted; },
++    play(name) {
++      if (muted) return; if (!ensure()) return; const t = ctx.currentTime;
++      if (name === 'deal') for (let i = 0; i < 4; i++) noise(t + i * 0.08, 0.05, 0.05, 1800);
++      else if (name === 'check') { tone(200, t, 0.08, 'sine', 0.16, 150); tone(180, t + 0.09, 0.08, 'sine', 0.12, 140); }
++      else if (name === 'call') chips(t, 2, 1400);
++      else if (name === 'raise') chips(t, 3, 1650);
++      else if (name === 'fold') noise(t, 0.18, 0.08, 1100);
++      else if (name === 'allin') { tone(120, t, 0.5, 'sawtooth', 0.16, 60); chips(t + 0.05, 5, 1800); }
++      else if (name === 'win') [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 'triangle', 0.14));
++    }
++  };
++})();
++function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
++
++// Play sounds by diffing successive states (deal on new hand, per-seat actions).
++function soundsFromState(state) {
++  if (state.phase !== 'playing') return;
++  if (state.handNum !== prevHandNum) { if (prevHandNum !== 0) sfx.play('deal'); prevHandNum = state.handNum; prevActions = {}; }
++  state.seats.forEach(s => {
++    if (!s) return;
++    const la = s.lastAction || '', prev = prevActions[s.seatIndex];
++    if (la === prev) return;
++    prevActions[s.seatIndex] = la;
++    if (la.startsWith('Fold')) sfx.play('fold');
++    else if (la.startsWith('Check')) sfx.play('check');
++    else if (la.startsWith('Call')) sfx.play('call');
++    else if (la.startsWith('Raise')) sfx.play('raise');
++    else if (la.startsWith('All-in')) sfx.play('allin');
++  });
++}
 +
 +// ── SOCKET ──
 +function initSocket() {
@@ -2300,6 +2386,7 @@ index 0000000..f155e1d
 +    if (state.phase === 'waiting' && currentScreen === 's-game') showScreen('s-seats');
 +    renderSeatChooser(state);
 +    if (state.phase === 'playing') renderGame(state);
++    soundsFromState(state);
 +    updateSettingsBtn();
 +  });
 +
@@ -2310,6 +2397,7 @@ index 0000000..f155e1d
 +  });
 +
 +  socket.on('hand_over', ({ winnerName, pot, handName, seats }) => {
++    sfx.play('win');
 +    setThink(winnerName + ' wins ' + pot + (handName ? ' — ' + handName : ''));
 +    // reveal all cards
 +    if (lastState) {
@@ -2327,9 +2415,6 @@ index 0000000..f155e1d
 +    document.getElementById('sp-sb').value = sb;
 +    document.getElementById('sp-bb').value = bb;
 +  });
-+
-+  // live GTO coaching for your own decisions
-+  socket.on('gto_feedback', showCoach);
 +
 +  socket.on('session_ended', ({ stats, handNum }) => {
 +    buildResults(stats, handNum);
@@ -2555,7 +2640,8 @@ index 0000000..f155e1d
 +    const actTxt = s.lastAction || '';
 +    seat.innerHTML = '<div class="' + avCls + '">' + initials
 +      + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
-+      + '<div class="tseat-plate"><div class="tseat-name">' + s.name + '</div>'
++      + '<div class="tseat-plate"><div class="tseat-name">' + s.name
++      + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
 +      + '<div class="tseat-chips">' + s.chips + '</div></div>'
 +      + '<div class="tseat-cards">' + cardsHtml + '</div>'
 +      + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
@@ -2580,6 +2666,8 @@ index 0000000..f155e1d
 +      });
 +    }
 +    document.getElementById('p-chipsval').textContent = me.chips + ' chips';
++    document.getElementById('p-wins').textContent = me.wins > 0 ? '🏆' + me.wins : '';
++    document.getElementById('p-hand').textContent = state.myHand || '';
 +
 +    // action bar
 +    const myTurn = me.isTurn && !state.over;
@@ -2725,25 +2813,6 @@ index 0000000..f155e1d
 +  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.textContent = '', 300); }, 3000);
 +}
 +
-+// ── LIVE GTO COACH ──
-+let coachHits = 0, coachTotal = 0, coachTimer = null;
-+function showCoach(d) {
-+  coachTotal++; if (d.correct) coachHits++;
-+  const card = document.getElementById('coach');
-+  if (!card) return;
-+  const acc = Math.round(coachHits / coachTotal * 100);
-+  const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : d.street);
-+  card.className = 'coach show ' + (d.correct ? 'good' : 'bad');
-+  card.innerHTML =
-+    '<div class="coach-top"><span class="coach-dot"></span>'
-+    + '<span class="coach-verdict">' + (d.correct ? 'GTO-approved' : 'Off GTO') + '</span>'
-+    + '<span class="coach-badge">' + badge + '</span></div>'
-+    + '<div class="coach-note">' + d.note + '</div>'
-+    + '<div class="coach-acc">Session accuracy <b>' + acc + '%</b> · ' + coachHits + '/' + coachTotal + ' decisions</div>';
-+  clearTimeout(coachTimer);
-+  coachTimer = setTimeout(() => card.classList.remove('show'), 5200);
-+}
-+function resetCoach() { coachHits = 0; coachTotal = 0; const c = document.getElementById('coach'); if (c) c.classList.remove('show'); }
 +
 +// ── RESULTS ──
 +function buildResults(stats, handNum) {
@@ -2783,16 +2852,48 @@ index 0000000..f155e1d
 +  document.getElementById('res-lb').innerHTML = html;
 +}
 +
++// 13×13 starting-hand grid showing how the player actually played each combo preflop.
++const RANKS13 = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
++const ACT_COL = { raise:'#c9a84c', call:'#46d27c', check:'#5aa9e6', fold:'rgba(255,255,255,.07)' };
++function buildRangeGrid(handLog) {
++  const map = {};
++  handLog.forEach(h => {
++    if (!h.combo) return;
++    const a = h.pfAction || 'fold';
++    (map[h.combo] = map[h.combo] || {})[a] = (map[h.combo][a] || 0) + 1;
++  });
++  const pick = combo => {
++    const m = map[combo]; if (!m) return null;
++    let best = null, bc = -1;
++    ['raise','call','check','fold'].forEach(a => { if ((m[a]||0) > bc) { bc = m[a]||0; best = a; } });
++    return best;
++  };
++  let cells = '';
++  for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
++    const combo = i === j ? RANKS13[i] + RANKS13[j] : i < j ? RANKS13[i] + RANKS13[j] + 's' : RANKS13[j] + RANKS13[i] + 'o';
++    const a = pick(combo);
++    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '" title="' + combo + (a ? ' · ' + a : '') + '">' + combo + '</div>';
++  }
++  return '<div class="rg-wrap"><div class="rg-t">Your preflop play (by hand)</div>'
++    + '<div class="rg-grid">' + cells + '</div>'
++    + '<div class="rg-legend">'
++    + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
++    + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
++    + '</div></div>';
++}
++
 +function buildPC(p) {
 +  const s = p.stat;
 +  const net = p.chips - s.startChips;
 +  const wr = s.handsPlayed ? Math.round(s.handsWon / s.handsPlayed * 100) : 0;
-+  const lp = s.luckHands ? Math.round(s.luckPts / s.luckHands / 3 * 100) : 0;
++  const luck = s.luckDen ? Math.round(50 + 50 * (s.luckNum / s.luckDen)) : 50;
++  const luckChips = Math.round(s.luckChips || 0);
++  const luckLbl = luck >= 70 ? 'Heater 🔥' : luck >= 58 ? 'Run-good 🍀' : luck >= 43 ? 'Fair ⚖️' : luck >= 30 ? 'Bit cold 🥶' : 'Brutal 💀';
 +  const vp = s.handsPlayed ? Math.round(s.vpip / s.handsPlayed * 100) : 0;
 +  const fr = s.handsPlayed ? Math.round(s.folds / s.handsPlayed * 100) : 0;
 +  const gto = gtoAcc(s);
 +  const gtoCls = gto >= 70 ? 'g' : gto >= 50 ? 'n' : 'r';
-+  const gtoLbl = gto >= 75 ? 'Strong GTO play' : gto >= 60 ? 'Solid fundamentals' : gto >= 45 ? 'Some leaks to fix' : 'Review your ranges';
++  const gtoLbl = gto >= 75 ? 'Solver-approved 🎯' : gto >= 60 ? 'Solid fundamentals 👍' : gto >= 45 ? 'Some leaks to plug 🔧' : 'Spew alert 🚨';
 +  const gtoCol = gto >= 70 ? '#2ecc71' : gto >= 50 ? '#e8cc7a' : '#e74c3c';
 +  const inits = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 +  const netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu';
@@ -2809,8 +2910,9 @@ index 0000000..f155e1d
 +    + '<div class="ps"><div class="ps-l">VPIP</div><div class="ps-v n">' + vp + '%</div></div>'
 +    + '<div class="ps"><div class="ps-l">Fold rate</div><div class="ps-v">' + fr + '%</div></div>'
 +    + '<div class="ps"><div class="ps-l">Ghost wins</div><div class="ps-v n">' + (s.ghostWins||0) + '</div></div>'
-+    + '<div class="ps"><div class="ps-l">Luck score</div><div class="ps-v n">' + lp + '%'
-+    + '</div><div class="luck-row"><div class="luck-t"><div class="luck-f" style="width:' + Math.min(lp,100) + '%"></div></div></div></div>'
++    + '<div class="ps"><div class="ps-l">Luck · ' + luckLbl + '</div><div class="ps-v n">' + luck
++    + '<span style="font-size:11px;color:rgba(255,255,255,.35)"> (' + (luckChips>0?'+':'') + luckChips + ' vs EV)</span></div>'
++    + '<div class="luck-row"><div class="luck-t"><div class="luck-f" style="width:' + Math.min(luck,100) + '%"></div></div></div></div>'
 +    + '</div></div>';
 +
 +  // GTO
@@ -2836,6 +2938,9 @@ index 0000000..f155e1d
 +    });
 +    html += '</div>';
 +  }
++
++  // Preflop range grid
++  html += buildRangeGrid(s.handLog || []);
 +
 +  // Hand history
 +  if (s.handLog && s.handLog.length) {
@@ -2895,10 +3000,11 @@ index 0000000..f155e1d
 +  el.textContent = msg; el.classList.add('show');
 +  setTimeout(() => el.classList.remove('show'), 2500);
 +}
-+function newSession() { resetCoach(); showScreen('s-lobby'); }
++function newSession() { showScreen('s-lobby'); }
 +
 +// Auto-join from URL
 +window.addEventListener('load', () => {
++  const mb = document.getElementById('btn-mute'); if (mb) mb.textContent = sfx.muted ? '🔇' : '🔊';
 +  const m = window.location.pathname.match(/\/room\/([A-Z0-9]{6})/i);
 +  if (m) {
 +    document.getElementById('j-code').value = m[1].toUpperCase();
@@ -3631,13 +3737,13 @@ index 0000000..2e073b7
 +module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..80f562a
+index 0000000..8dd484b
 --- /dev/null
 +++ b/src/engine.js
-@@ -0,0 +1,350 @@
+@@ -0,0 +1,391 @@
 +// ── Game engine: rooms, dealing, betting, showdown, side pots ──
-+const { makeDeck, shuffle, evalBest, cmpE } = require('./cards');
-+const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO } = require('./gto');
++const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
++const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown } = require('./gto');
 +
 +const rooms = {};
 +let io = null;
@@ -3646,7 +3752,11 @@ index 0000000..80f562a
 +function makeCode() { return Math.random().toString(36).substr(2, 6).toUpperCase(); }
 +
 +function mkStat(startChips) {
-+  return { startChips, chips: startChips, handsPlayed: 0, handsWon: 0, vpip: 0, folds: 0, ghostWins: 0, luckPts: 0, luckHands: 0, gtoDecisions: [], chipHistory: [startChips], handLog: [] };
++  return {
++    startChips, chips: startChips, handsPlayed: 0, handsWon: 0, vpip: 0, folds: 0, ghostWins: 0,
++    luckNum: 0, luckDen: 0, luckChips: 0, // pot-weighted realized-equity luck
++    gtoDecisions: [], chipHistory: [startChips], handLog: []
++  };
 +}
 +
 +function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
@@ -3673,7 +3783,8 @@ index 0000000..80f562a
 +  room.seats[seatIndex] = {
 +    id: socketId, name, socketId, chips, stat: mkStat(chips),
 +    cards: [], bet: 0, committed: 0, folded: false,
-+    lastAction: '', seatIndex, curPF: null, connected: true
++    lastAction: '', seatIndex, curPF: null, connected: true,
++    sawFlop: false, pfAction: null
 +  };
 +}
 +
@@ -3692,10 +3803,19 @@ index 0000000..80f562a
 +  return fromIdx;
 +}
 +
++const RANK_NAME = { A: 'Ace', K: 'King', Q: 'Queen', J: 'Jack', T: 'Ten', 9: 'Nine', 8: 'Eight', 7: 'Seven', 6: 'Six', 5: 'Five', 4: 'Four', 3: 'Three', 2: 'Two' };
++function madeHandLabel(cards, board) {
++  if (!cards || cards.length < 2 || !cards[0]) return '';
++  if (board.length >= 3) return evalBest([...cards, ...board]).name;
++  if (cards[0].r === cards[1].r) return 'Pair of ' + RANK_NAME[cards[0].r] + 's';
++  const hi = RV[cards[0].r] >= RV[cards[1].r] ? cards[0].r : cards[1].r;
++  return RANK_NAME[hi] + ' high';
++}
++
 +function seatView(room, s, i, socketId) {
 +  return {
 +    seatIndex: i, id: s.id, name: s.name, chips: s.chips, bet: s.bet,
-+    folded: s.folded, lastAction: s.lastAction,
++    folded: s.folded, lastAction: s.lastAction, wins: s.stat.handsWon,
 +    isDealer: i === room.dealer,
 +    isTurn: !room.over && room.queue[0] === i,
 +    isYou: socketId != null && s.socketId === socketId,
@@ -3705,11 +3825,13 @@ index 0000000..80f562a
 +}
 +
 +function buildView(room, socketId) {
++  const me = socketId != null ? room.seats.find(s => s && s.socketId === socketId) : null;
 +  return {
 +    code: room.code, handNum: room.handNum, pot: room.pot, board: room.board,
 +    street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
 +    sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
 +    isHost: room.hostId === socketId,
++    myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
 +    seats: room.seats.map((s, i) => s ? seatView(room, s, i, socketId) : null)
 +  };
 +}
@@ -3753,6 +3875,7 @@ index 0000000..80f562a
 +
 +  players.forEach(p => {
 +    p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
++    p.sawFlop = false; p.pfAction = null;
 +    if (p.chips <= 0) p.chips = room.startChips;
 +  });
 +
@@ -3762,10 +3885,7 @@ index 0000000..80f562a
 +
 +  for (let i = 0; i < 2; i++) players.forEach(p => p.cards.push(deck[room.di++]));
 +
-+  players.forEach(p => {
-+    const ps = pfStr(p.cards[0], p.cards[1]);
-+    p.stat.luckPts += ps.lp; p.stat.luckHands++; p.curPF = ps;
-+  });
++  players.forEach(p => { p.curPF = pfStr(p.cards[0], p.cards[1]); });
 +
 +  // Heads-up: the dealer is the small blind and acts first preflop.
 +  let sbIdx, bbIdx, startIdx;
@@ -3871,24 +3991,26 @@ index 0000000..80f562a
 +    ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
 +  }
 +
++  // remember the player's strongest preflop action (for the range grid)
++  if (room.street === 'preflop') {
++    const prec = { fold: 0, check: 1, call: 2, raise: 3 };
++    if (player.pfAction == null || prec[action] > prec[player.pfAction]) player.pfAction = action;
++  }
++
 +  const res = scoreGTO(ctx);
-+  const decision = {
++  player.stat.gtoDecisions.push({
 +    hand: room.handNum, street: room.street, action, position,
 +    correct: res.correct, note: res.note,
 +    equity: res.eq != null ? Math.round(res.eq * 100) : null,
 +    chen: res.chen
-+  };
-+  player.stat.gtoDecisions.push(decision);
-+
-+  // live coaching: privately nudge the player who just acted
-+  if (player.socketId && io) io.to(player.socketId).emit('gto_feedback', decision);
++  });
 +}
 +
 +function advStreet(room) {
 +  filledSeats(room).forEach(p => p.bet = 0);
 +  room.curBet = 0;
 +
-+  if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; }
++  if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; filledSeats(room).forEach(p => { if (!p.folded) p.sawFlop = true; }); }
 +  else if (room.street === 'flop') { room.board.push(room.deck[room.di++]); room.street = 'turn'; }
 +  else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; }
 +  else { endHand(room); return; }
@@ -3954,19 +4076,44 @@ index 0000000..80f562a
 +    }
 +  });
 +
++  // Pot-weighted "run-good" luck: compare each contesting hand's result to its
++  // flop equity vs the opponents who actually saw the flop. Big pots count more.
++  const flopSeers = filledSeats(room).filter(p => p.sawFlop);
++  const flop = room.board.slice(0, 3);
++
 +  filledSeats(room).forEach(p => {
 +    p.stat.handsPlayed++;
 +    p.stat.chips = p.chips;
 +    p.stat.chipHistory.push(p.chips);
-+    if (p.curPF) {
-+      p.stat.handLog.push({
-+        num: room.handNum, cards: [...p.cards], board: [...room.board],
-+        pfLabel: p.curPF.label, pfPts: p.curPF.pts,
-+        won: winnings[p.seatIndex] > 0, folded: p.folded,
-+        ghostWin: p.folded && room.board.length >= 3 && winner && !winner.folded && cmpE(evalBest([...p.cards, ...room.board]), evalBest([...winner.cards, ...room.board])) > 0,
-+        winAmt: winnings[p.seatIndex] || 0
-+      });
++    if (!p.curPF) return;
++
++    const opps = flopSeers.filter(o => o !== p);
++    let perHand, weight, realizedChips = 0;
++    if (p.sawFlop && opps.length && room.board.length >= 3) {
++      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
++      realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
++      perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
++      weight = room.bb ? room.pot / room.bb : 1;
++    } else {
++      // preflop-only: card-dealing luck (dampened, light weight)
++      const cp = Math.max(0, Math.min(1, (chenScore(p.cards[0], p.cards[1]) + 2) / 22));
++      perHand = (cp - 0.5);
++      weight = 1;
 +    }
++    p.stat.luckNum += perHand * weight;
++    p.stat.luckDen += weight;
++    p.stat.luckChips += realizedChips;
++
++    p.stat.handLog.push({
++      num: room.handNum, cards: [...p.cards], board: [...room.board],
++      pfLabel: p.curPF.label, pfPts: p.curPF.pts,
++      combo: comboLabel(p.cards[0], p.cards[1]),
++      pfAction: p.pfAction || (p.folded ? 'fold' : 'check'),
++      luckPct: Math.round((perHand + 1) / 2 * 100),
++      won: winnings[p.seatIndex] > 0, folded: p.folded,
++      ghostWin: p.folded && room.board.length >= 3 && winner && !winner.folded && cmpE(evalBest([...p.cards, ...room.board]), evalBest([...winner.cards, ...room.board])) > 0,
++      winAmt: winnings[p.seatIndex] || 0
++    });
 +  });
 +
 +  broadcast(room);
@@ -3987,12 +4134,46 @@ index 0000000..80f562a
 +};
 diff --git a/src/gto.js b/src/gto.js
 new file mode 100644
-index 0000000..6dbf590
+index 0000000..dc83bbb
 --- /dev/null
 +++ b/src/gto.js
-@@ -0,0 +1,135 @@
+@@ -0,0 +1,169 @@
 +// ── GTO scoring: preflop heuristics (Chen) + postflop Monte-Carlo equity ──
 +const { RV, makeDeck, evalBest, cmpE } = require('./cards');
++
++// Canonical starting-hand label, e.g. "AKs", "AKo", "TT", "72o".
++function comboLabel(c1, c2) {
++  const a = RV[c1.r] >= RV[c2.r] ? c1 : c2;
++  const b = RV[c1.r] >= RV[c2.r] ? c2 : c1;
++  if (c1.r === c2.r) return c1.r + c2.r;
++  return a.r + b.r + (c1.s === c2.s ? 's' : 'o');
++}
++
++// Equity of `hole` vs specific known opponent hands, running out the board.
++function equityVsKnown(hole, board, oppHoles, iters) {
++  const used = new Set([...hole, ...board, ...oppHoles.flat()].map(c => c.r + c.s));
++  const base = makeDeck().filter(c => !used.has(c.r + c.s));
++  const need = 5 - board.length;
++  if (need < 0) return null;
++  const runs = need === 0 ? 1 : iters; // board already complete → deterministic
++  let score = 0;
++  for (let i = 0; i < runs; i++) {
++    for (let k = 0; k < need; k++) {
++      const j = k + (0 | Math.random() * (base.length - k));
++      const t = base[k]; base[k] = base[j]; base[j] = t;
++    }
++    const full = board.concat(base.slice(0, need));
++    const me = evalBest(hole.concat(full));
++    let lost = false, tied = false;
++    for (const oh of oppHoles) {
++      const c = cmpE(evalBest(oh.concat(full)), me);
++      if (c > 0) { lost = true; break; }
++      if (c === 0) tied = true;
++    }
++    if (!lost) score += tied ? 0.5 : 1;
++  }
++  return score / runs;
++}
 +
 +// Legacy "luck"/label helper still used for hand-log labels and the luck meter.
 +function pfStr(c1, c2) {
@@ -4125,4 +4306,4 @@ index 0000000..6dbf590
 +  return { correct, note, eq, chen: null };
 +}
 +
-+module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO };
++module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown };

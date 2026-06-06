@@ -43,6 +43,67 @@ let lastState = null;
 let inviteUrl = '';
 let raiseCtx = null;
 let myTurnWas = false;
+let prevHandNum = 0, prevActions = {};
+
+// ── SOUND (synthesized via Web Audio — no files) ──
+const sfx = (() => {
+  let ctx = null, muted = localStorage.getItem('pt-muted') === '1';
+  function ensure() {
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function tone(f, t0, dur, type, gain, sweep) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    if (sweep) o.frequency.exponentialRampToValueAtTime(Math.max(40, sweep), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function noise(t0, dur, gain, hp) {
+    const n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 800;
+    const g = ctx.createGain(); g.gain.value = gain;
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t0); src.stop(t0 + dur);
+  }
+  function chips(t0, n, base) { for (let i = 0; i < n; i++) { const t = t0 + i * 0.045; tone((base || 1500) + Math.random() * 400, t, 0.06, 'triangle', 0.1); noise(t, 0.03, 0.04, 2500); } }
+  return {
+    get muted() { return muted; },
+    toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); return muted; },
+    play(name) {
+      if (muted) return; if (!ensure()) return; const t = ctx.currentTime;
+      if (name === 'deal') for (let i = 0; i < 4; i++) noise(t + i * 0.08, 0.05, 0.05, 1800);
+      else if (name === 'check') { tone(200, t, 0.08, 'sine', 0.16, 150); tone(180, t + 0.09, 0.08, 'sine', 0.12, 140); }
+      else if (name === 'call') chips(t, 2, 1400);
+      else if (name === 'raise') chips(t, 3, 1650);
+      else if (name === 'fold') noise(t, 0.18, 0.08, 1100);
+      else if (name === 'allin') { tone(120, t, 0.5, 'sawtooth', 0.16, 60); chips(t + 0.05, 5, 1800); }
+      else if (name === 'win') [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 'triangle', 0.14));
+    }
+  };
+})();
+function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
+
+// Play sounds by diffing successive states (deal on new hand, per-seat actions).
+function soundsFromState(state) {
+  if (state.phase !== 'playing') return;
+  if (state.handNum !== prevHandNum) { if (prevHandNum !== 0) sfx.play('deal'); prevHandNum = state.handNum; prevActions = {}; }
+  state.seats.forEach(s => {
+    if (!s) return;
+    const la = s.lastAction || '', prev = prevActions[s.seatIndex];
+    if (la === prev) return;
+    prevActions[s.seatIndex] = la;
+    if (la.startsWith('Fold')) sfx.play('fold');
+    else if (la.startsWith('Check')) sfx.play('check');
+    else if (la.startsWith('Call')) sfx.play('call');
+    else if (la.startsWith('Raise')) sfx.play('raise');
+    else if (la.startsWith('All-in')) sfx.play('allin');
+  });
+}
 
 // ── SOCKET ──
 function initSocket() {
@@ -80,6 +141,7 @@ function initSocket() {
     if (state.phase === 'waiting' && currentScreen === 's-game') showScreen('s-seats');
     renderSeatChooser(state);
     if (state.phase === 'playing') renderGame(state);
+    soundsFromState(state);
     updateSettingsBtn();
   });
 
@@ -90,6 +152,7 @@ function initSocket() {
   });
 
   socket.on('hand_over', ({ winnerName, pot, handName, seats }) => {
+    sfx.play('win');
     setThink(winnerName + ' wins ' + pot + (handName ? ' — ' + handName : ''));
     // reveal all cards
     if (lastState) {
@@ -107,9 +170,6 @@ function initSocket() {
     document.getElementById('sp-sb').value = sb;
     document.getElementById('sp-bb').value = bb;
   });
-
-  // live GTO coaching for your own decisions
-  socket.on('gto_feedback', showCoach);
 
   socket.on('session_ended', ({ stats, handNum }) => {
     buildResults(stats, handNum);
@@ -335,7 +395,8 @@ function renderGame(state) {
     const actTxt = s.lastAction || '';
     seat.innerHTML = '<div class="' + avCls + '">' + initials
       + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
-      + '<div class="tseat-plate"><div class="tseat-name">' + s.name + '</div>'
+      + '<div class="tseat-plate"><div class="tseat-name">' + s.name
+      + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
       + '<div class="tseat-chips">' + s.chips + '</div></div>'
       + '<div class="tseat-cards">' + cardsHtml + '</div>'
       + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
@@ -360,6 +421,8 @@ function renderGame(state) {
       });
     }
     document.getElementById('p-chipsval').textContent = me.chips + ' chips';
+    document.getElementById('p-wins').textContent = me.wins > 0 ? '🏆' + me.wins : '';
+    document.getElementById('p-hand').textContent = state.myHand || '';
 
     // action bar
     const myTurn = me.isTurn && !state.over;
@@ -505,25 +568,6 @@ function setThink(t) {
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.textContent = '', 300); }, 3000);
 }
 
-// ── LIVE GTO COACH ──
-let coachHits = 0, coachTotal = 0, coachTimer = null;
-function showCoach(d) {
-  coachTotal++; if (d.correct) coachHits++;
-  const card = document.getElementById('coach');
-  if (!card) return;
-  const acc = Math.round(coachHits / coachTotal * 100);
-  const badge = d.equity != null ? d.equity + '% eq' : (d.chen != null ? 'Chen ' + d.chen : d.street);
-  card.className = 'coach show ' + (d.correct ? 'good' : 'bad');
-  card.innerHTML =
-    '<div class="coach-top"><span class="coach-dot"></span>'
-    + '<span class="coach-verdict">' + (d.correct ? 'GTO-approved' : 'Off GTO') + '</span>'
-    + '<span class="coach-badge">' + badge + '</span></div>'
-    + '<div class="coach-note">' + d.note + '</div>'
-    + '<div class="coach-acc">Session accuracy <b>' + acc + '%</b> · ' + coachHits + '/' + coachTotal + ' decisions</div>';
-  clearTimeout(coachTimer);
-  coachTimer = setTimeout(() => card.classList.remove('show'), 5200);
-}
-function resetCoach() { coachHits = 0; coachTotal = 0; const c = document.getElementById('coach'); if (c) c.classList.remove('show'); }
 
 // ── RESULTS ──
 function buildResults(stats, handNum) {
@@ -563,16 +607,48 @@ function buildLB(players) {
   document.getElementById('res-lb').innerHTML = html;
 }
 
+// 13×13 starting-hand grid showing how the player actually played each combo preflop.
+const RANKS13 = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const ACT_COL = { raise:'#c9a84c', call:'#46d27c', check:'#5aa9e6', fold:'rgba(255,255,255,.07)' };
+function buildRangeGrid(handLog) {
+  const map = {};
+  handLog.forEach(h => {
+    if (!h.combo) return;
+    const a = h.pfAction || 'fold';
+    (map[h.combo] = map[h.combo] || {})[a] = (map[h.combo][a] || 0) + 1;
+  });
+  const pick = combo => {
+    const m = map[combo]; if (!m) return null;
+    let best = null, bc = -1;
+    ['raise','call','check','fold'].forEach(a => { if ((m[a]||0) > bc) { bc = m[a]||0; best = a; } });
+    return best;
+  };
+  let cells = '';
+  for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
+    const combo = i === j ? RANKS13[i] + RANKS13[j] : i < j ? RANKS13[i] + RANKS13[j] + 's' : RANKS13[j] + RANKS13[i] + 'o';
+    const a = pick(combo);
+    cells += '<div class="rg-c' + (a ? ' rg-played' : '') + '" style="' + (a ? 'background:' + ACT_COL[a] : '') + '" title="' + combo + (a ? ' · ' + a : '') + '">' + combo + '</div>';
+  }
+  return '<div class="rg-wrap"><div class="rg-t">Your preflop play (by hand)</div>'
+    + '<div class="rg-grid">' + cells + '</div>'
+    + '<div class="rg-legend">'
+    + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
+    + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
+    + '</div></div>';
+}
+
 function buildPC(p) {
   const s = p.stat;
   const net = p.chips - s.startChips;
   const wr = s.handsPlayed ? Math.round(s.handsWon / s.handsPlayed * 100) : 0;
-  const lp = s.luckHands ? Math.round(s.luckPts / s.luckHands / 3 * 100) : 0;
+  const luck = s.luckDen ? Math.round(50 + 50 * (s.luckNum / s.luckDen)) : 50;
+  const luckChips = Math.round(s.luckChips || 0);
+  const luckLbl = luck >= 70 ? 'Heater 🔥' : luck >= 58 ? 'Run-good 🍀' : luck >= 43 ? 'Fair ⚖️' : luck >= 30 ? 'Bit cold 🥶' : 'Brutal 💀';
   const vp = s.handsPlayed ? Math.round(s.vpip / s.handsPlayed * 100) : 0;
   const fr = s.handsPlayed ? Math.round(s.folds / s.handsPlayed * 100) : 0;
   const gto = gtoAcc(s);
   const gtoCls = gto >= 70 ? 'g' : gto >= 50 ? 'n' : 'r';
-  const gtoLbl = gto >= 75 ? 'Strong GTO play' : gto >= 60 ? 'Solid fundamentals' : gto >= 45 ? 'Some leaks to fix' : 'Review your ranges';
+  const gtoLbl = gto >= 75 ? 'Solver-approved 🎯' : gto >= 60 ? 'Solid fundamentals 👍' : gto >= 45 ? 'Some leaks to plug 🔧' : 'Spew alert 🚨';
   const gtoCol = gto >= 70 ? '#2ecc71' : gto >= 50 ? '#e8cc7a' : '#e74c3c';
   const inits = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu';
@@ -589,8 +665,9 @@ function buildPC(p) {
     + '<div class="ps"><div class="ps-l">VPIP</div><div class="ps-v n">' + vp + '%</div></div>'
     + '<div class="ps"><div class="ps-l">Fold rate</div><div class="ps-v">' + fr + '%</div></div>'
     + '<div class="ps"><div class="ps-l">Ghost wins</div><div class="ps-v n">' + (s.ghostWins||0) + '</div></div>'
-    + '<div class="ps"><div class="ps-l">Luck score</div><div class="ps-v n">' + lp + '%'
-    + '</div><div class="luck-row"><div class="luck-t"><div class="luck-f" style="width:' + Math.min(lp,100) + '%"></div></div></div></div>'
+    + '<div class="ps"><div class="ps-l">Luck · ' + luckLbl + '</div><div class="ps-v n">' + luck
+    + '<span style="font-size:11px;color:rgba(255,255,255,.35)"> (' + (luckChips>0?'+':'') + luckChips + ' vs EV)</span></div>'
+    + '<div class="luck-row"><div class="luck-t"><div class="luck-f" style="width:' + Math.min(luck,100) + '%"></div></div></div></div>'
     + '</div></div>';
 
   // GTO
@@ -616,6 +693,9 @@ function buildPC(p) {
     });
     html += '</div>';
   }
+
+  // Preflop range grid
+  html += buildRangeGrid(s.handLog || []);
 
   // Hand history
   if (s.handLog && s.handLog.length) {
@@ -675,10 +755,11 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 }
-function newSession() { resetCoach(); showScreen('s-lobby'); }
+function newSession() { showScreen('s-lobby'); }
 
 // Auto-join from URL
 window.addEventListener('load', () => {
+  const mb = document.getElementById('btn-mute'); if (mb) mb.textContent = sfx.muted ? '🔇' : '🔊';
   const m = window.location.pathname.match(/\/room\/([A-Z0-9]{6})/i);
   if (m) {
     document.getElementById('j-code').value = m[1].toUpperCase();
