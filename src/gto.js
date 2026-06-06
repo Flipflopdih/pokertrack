@@ -166,4 +166,42 @@ function scoreGTO(ctx) {
   return { correct, note, eq, chen: null };
 }
 
-module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown };
+// Win% for each entrant at an all-in/showdown, running out the remaining board.
+function showdownEquities(entrants, board, iters) {
+  const used = new Set([...board, ...entrants.flatMap(e => e.cards)].map(c => c.r + c.s));
+  const deck = makeDeck().filter(c => !used.has(c.r + c.s));
+  const need = 5 - board.length;
+  const runs = need === 0 ? 1 : iters;
+  const win = {}; entrants.forEach(e => win[e.seatIndex] = 0);
+  for (let i = 0; i < runs; i++) {
+    for (let k = 0; k < need; k++) { const j = k + (0 | Math.random() * (deck.length - k)); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; }
+    const full = board.concat(deck.slice(0, need));
+    let best = null, winners = [];
+    entrants.forEach(e => {
+      const ev = evalBest(e.cards.concat(full));
+      const c = best ? cmpE(ev, best) : 1;
+      if (c > 0) { best = ev; winners = [e.seatIndex]; }
+      else if (c === 0) winners.push(e.seatIndex);
+    });
+    winners.forEach(s => win[s] += 1 / winners.length);
+  }
+  const out = {}; entrants.forEach(e => out[e.seatIndex] = Math.round(win[e.seatIndex] / runs * 100));
+  return out;
+}
+
+// GTO-recommended action for a spot (for the optional hints / training mode).
+function suggestAction(ctx) {
+  if (ctx.street === 'preflop') {
+    const thr = OPEN_THRESH[ctx.position] || 8;
+    if (!ctx.facingRaise) return ctx.chen >= thr ? 'raise' : (ctx.canCheck ? 'check' : 'fold');
+    if (ctx.chen >= thr + 5) return 'raise';
+    if (ctx.chen >= thr + 1) return 'call';
+    return 'fold';
+  }
+  if (ctx.canCheck) return ctx.equity >= 0.55 ? 'raise' : 'check';
+  if (ctx.equity >= 0.6) return 'raise';
+  if (ctx.equity + 0.02 >= ctx.potOdds) return 'call';
+  return 'fold';
+}
+
+module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities, suggestAction };

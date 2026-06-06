@@ -1,6 +1,6 @@
 // ── Game engine: rooms, dealing, betting, showdown, side pots ──
 const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
-const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown } = require('./gto');
+const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities } = require('./gto');
 
 const rooms = {};
 let io = null;
@@ -16,7 +16,7 @@ function mkStat(startChips) {
   };
 }
 
-function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
+function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin) {
   const code = makeCode();
   rooms[code] = {
     code, hostId: hostSocketId, sb, bb, startChips,
@@ -25,10 +25,25 @@ function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
     dealer: -1, handNum: 0,
     deck: [], di: 0, pot: 0, board: [],
     curBet: 0, street: '', queue: [],
-    over: true, actionTimer: null, phase: 'waiting'
+    over: true, actionTimer: null, phase: 'waiting',
+    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null
   };
   return code;
 }
+
+// Tournament blind levels: double the blinds every `blindUpMs` once the game starts.
+function startBlindTimer(room) {
+  if (!room.blindUpMs || room.blindTimer) return;
+  room.nextBlindAt = Date.now() + room.blindUpMs;
+  room.blindTimer = setInterval(() => {
+    if (!rooms[room.code]) return stopBlindTimer(room);
+    room.level++; room.sb *= 2; room.bb *= 2;
+    room.nextBlindAt = Date.now() + room.blindUpMs;
+    io.to(room.code).emit('blinds_up', { level: room.level, sb: room.sb, bb: room.bb });
+    broadcast(room);
+  }, room.blindUpMs);
+}
+function stopBlindTimer(room) { if (room.blindTimer) { clearInterval(room.blindTimer); room.blindTimer = null; } }
 
 function getRoom(code) { return rooms[code.toUpperCase()]; }
 function deleteRoom(code) { delete rooms[code.toUpperCase()]; }
@@ -41,7 +56,7 @@ function seatPlayer(room, seatIndex, name, socketId, chips) {
     id: socketId, name, socketId, chips, stat: mkStat(chips),
     cards: [], bet: 0, committed: 0, folded: false,
     lastAction: '', seatIndex, curPF: null, connected: true,
-    sawFlop: false, pfAction: null
+    sawFlop: false, pfAction: null, sittingOut: false, showCards: false, rigged: false
   };
 }
 
@@ -55,7 +70,8 @@ function commit(room, p, amt) {
 function nextSeat(room, fromIdx) {
   for (let i = 1; i <= 8; i++) {
     const idx = (fromIdx + i) % 8;
-    if (room.seats[idx]) return idx;
+    const s = room.seats[idx];
+    if (s && !s.sittingOut) return idx; // sitting-out seats are skipped in the action order
   }
   return fromIdx;
 }
@@ -70,14 +86,16 @@ function madeHandLabel(cards, board) {
 }
 
 function seatView(room, s, i, socketId) {
+  const mine = socketId != null && s.socketId === socketId;
+  // At showdown, opponents' cards are only visible if that player chose to show (or won).
+  const cards = mine ? s.cards : (room.over && s.showCards ? s.cards : s.cards.map(() => null));
   return {
     seatIndex: i, id: s.id, name: s.name, chips: s.chips, bet: s.bet,
     folded: s.folded, lastAction: s.lastAction, wins: s.stat.handsWon,
+    sittingOut: s.sittingOut, showCards: s.showCards,
     isDealer: i === room.dealer,
     isTurn: !room.over && room.queue[0] === i,
-    isYou: socketId != null && s.socketId === socketId,
-    cards: socketId != null && s.socketId === socketId ? s.cards : (room.over ? s.cards : s.cards.map(() => null)),
-    connected: s.connected
+    isYou: mine, cards, connected: s.connected
   };
 }
 
@@ -87,7 +105,9 @@ function buildView(room, socketId) {
     code: room.code, handNum: room.handNum, pot: room.pot, board: room.board,
     street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
     sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
+    level: room.level, nextBlindAt: room.nextBlindAt, blindUpMs: room.blindUpMs,
     isHost: room.hostId === socketId,
+    rig: room.hostId === socketId ? room.seats.map((s, i) => s && s.rigged ? i : -1).filter(i => i >= 0) : null,
     myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
     seats: room.seats.map((s, i) => s ? seatView(room, s, i, socketId) : null)
   };
@@ -98,6 +118,15 @@ function broadcast(room) {
     if (p.socketId) io.to(p.socketId).emit('state', buildView(room, p.socketId));
   });
   io.to(room.code).emit('state_public', buildView(room, null));
+}
+
+function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 0).length <= 1; }
+
+// Broadcast live win% for everyone still in (used during all-in run-outs).
+function emitEquities(room) {
+  const act = activePlayers(room);
+  if (act.length < 2) return;
+  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
 }
 
 function postBlind(room, seatIdx, amt) {
@@ -112,7 +141,7 @@ function buildQueue(room, startSeatIdx, excludeIdx) {
   let idx = startSeatIdx;
   for (let i = 0; i < 8; i++) {
     const seat = room.seats[idx];
-    if (seat && !seat.folded && seat.chips > 0 && idx !== excludeIdx) q.push(idx);
+    if (seat && !seat.folded && !seat.sittingOut && seat.chips > 0 && idx !== excludeIdx) q.push(idx);
     idx = nextSeat(room, idx);
     if (idx === startSeatIdx) break;
   }
@@ -121,8 +150,8 @@ function buildQueue(room, startSeatIdx, excludeIdx) {
 
 function dealHand(room) {
   if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
-  const players = filledSeats(room);
-  if (players.length < 2) { room.phase = 'waiting'; broadcast(room); return; }
+  const players = filledSeats(room).filter(p => !p.sittingOut); // sitting-out players aren't dealt in
+  if (players.length < 2) { room.phase = 'waiting'; room.over = true; broadcast(room); return; }
 
   room.handNum++;
   room.phase = 'playing';
@@ -132,11 +161,15 @@ function dealHand(room) {
 
   players.forEach(p => {
     p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
-    p.sawFlop = false; p.pfAction = null;
+    p.sawFlop = false; p.pfAction = null; p.showCards = false;
     if (p.chips <= 0) p.chips = room.startChips;
   });
+  // sitting-out players sit the hand out (excluded from action/showdown)
+  filledSeats(room).filter(p => p.sittingOut).forEach(p => {
+    p.folded = true; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = 'Sitting out'; p.curPF = null; p.showCards = false;
+  });
 
-  const filled = room.seats.map((s, i) => s ? i : -1).filter(i => i >= 0);
+  const filled = room.seats.map((s, i) => (s && !s.sittingOut) ? i : -1).filter(i => i >= 0);
   if (room.dealer === -1 || filled.indexOf(room.dealer) === -1) room.dealer = filled[0];
   else room.dealer = filled[(filled.indexOf(room.dealer) + 1) % filled.length];
 
@@ -162,7 +195,10 @@ function dealHand(room) {
 function scheduleNext(room) {
   if (room.over) return;
   if (activePlayers(room).length <= 1) { endHand(room); return; }
-  if (!room.queue.length) { advStreet(room); return; }
+  if (!room.queue.length) {
+    if (bettingClosed(room)) emitEquities(room); // all-in run-out: show live equities
+    advStreet(room); return;
+  }
 
   const seatIdx = room.queue[0];
   const player = room.seats[seatIdx];
@@ -263,13 +299,35 @@ function trackGTO(room, player, action) {
   });
 }
 
+// Host "🎲 Luck mode": the two unused cards that make the strongest hand on this board.
+function bestHoleForBoard(board, pool) {
+  let best = null, pick = null;
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
+    const ev = evalBest([pool[i], pool[j], ...board]);
+    if (!best || cmpE(ev, best) > 0) { best = ev; pick = [pool[i], pool[j]]; }
+  }
+  return pick;
+}
+// On the river, swap each rigged (still-in) player's hole cards to a monster, no collisions.
+function applyRig(room) {
+  const rigged = activePlayers(room).filter(p => p.rigged);
+  if (!rigged.length) return;
+  const used = new Set(room.board.map(c => c.r + c.s));
+  activePlayers(room).filter(p => !p.rigged).forEach(p => p.cards.forEach(c => used.add(c.r + c.s)));
+  rigged.forEach(p => {
+    const pool = makeDeck().filter(c => !used.has(c.r + c.s));
+    const pick = bestHoleForBoard(room.board, pool);
+    if (pick) { p.cards = pick; p.curPF = pfStr(pick[0], pick[1]); pick.forEach(c => used.add(c.r + c.s)); }
+  });
+}
+
 function advStreet(room) {
   filledSeats(room).forEach(p => p.bet = 0);
   room.curBet = 0;
 
   if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; filledSeats(room).forEach(p => { if (!p.folded) p.sawFlop = true; }); }
   else if (room.street === 'flop') { room.board.push(room.deck[room.di++]); room.street = 'turn'; }
-  else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; }
+  else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; applyRig(room); }
   else { endHand(room); return; }
 
   room.queue = buildQueue(room, nextSeat(room, room.dealer));
@@ -326,6 +384,8 @@ function endHand(room) {
   let handName = '';
   if (showdown && !winner.folded) { handName = evalBest([...winner.cards, ...room.board]).name; winner.lastAction = handName; }
   filledSeats(room).forEach(p => { if (winnings[p.seatIndex] > 0) p.stat.handsWon++; });
+  // at showdown the winner(s) must show; everyone else may show/muck during the break
+  if (showdown) filledSeats(room).forEach(p => { if (winnings[p.seatIndex] > 0) p.showCards = true; });
 
   filledSeats(room).filter(p => p.folded).forEach(p => {
     if (room.board.length >= 3 && winner && !winner.folded) {
@@ -375,17 +435,28 @@ function endHand(room) {
 
   broadcast(room);
 
+  // can this player still choose to show? (was in the hand, didn't win, hasn't shown)
+  const canShow = p => showdown && !p.folded && !p.showCards && winnings[p.seatIndex] === 0;
   io.to(room.code).emit('hand_over', {
     winnerId: winner.id,
     winnerName: winnerCount > 1 ? 'Split pot' : winner.name,
     pot: room.pot, handName,
-    seats: room.seats.map((s, i) => s ? { seatIndex: i, name: s.name, cards: s.cards, folded: s.folded } : null)
+    seats: room.seats.map((s, i) => s ? { seatIndex: i, name: s.name, cards: s.showCards ? s.cards : s.cards.map(() => null), folded: s.folded, canShow: canShow(s) } : null)
   });
 
-  room.actionTimer = setTimeout(() => { if (rooms[room.code]) dealHand(room); }, 4000);
+  room.actionTimer = setTimeout(() => { if (rooms[room.code]) dealHand(room); }, 5000);
+}
+
+// A player chooses to show their mucked hand during the showdown break.
+function showCardsAction(room, socketId) {
+  const idx = seatOfSocket(room, socketId);
+  if (idx < 0 || !room.over) return;
+  const p = room.seats[idx];
+  if (p && !p.folded && p.cards.length) { p.showCards = true; broadcast(room); }
 }
 
 module.exports = {
   rooms, attach, createRoom, getRoom, deleteRoom, filledSeats, activePlayers,
-  seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext
+  seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext,
+  startBlindTimer, stopBlindTimer, showCardsAction
 };

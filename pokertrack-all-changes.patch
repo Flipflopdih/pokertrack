@@ -1102,10 +1102,10 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..d9a365b
+index 0000000..ae35718
 --- /dev/null
 +++ b/public/css/styles.css
-@@ -0,0 +1,353 @@
+@@ -0,0 +1,422 @@
 +*{box-sizing:border-box;margin:0;padding:0}
 +:root{--felt:#1b3d2a;--felt-mid:#1e4830;--felt-dark:#0f2017;--rail:#5c3d1e;--rail-dark:#3a2510;--gold:#c9a84c;--gold-l:#e8cc7a}
 +body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-height:100vh;overflow-x:hidden}
@@ -1459,8 +1459,77 @@ index 0000000..d9a365b
 +
 +/* profit-curve tooltip */
 +#chart-tip{position:fixed;pointer-events:none;background:rgba(0,0,0,.9);color:#f5ead0;font-family:'DM Mono',monospace;font-size:11px;padding:4px 9px;border-radius:7px;border:1px solid rgba(201,168,76,.3);z-index:1000;opacity:0;transition:opacity .12s;white-space:nowrap}
++
++/* ── PHASE 1 FEATURES ── */
++/* topbar level + toggle states */
++.tb-level{font-size:11px;color:#ff9d3c;font-family:'DM Mono',monospace;padding:3px 9px;border:1px solid rgba(255,157,60,.35);border-radius:6px;background:rgba(255,157,60,.1)}
++.btn-sm.on{border-color:var(--gold);color:var(--gold-l);background:rgba(201,168,76,.16)}
++
++/* reaction palette + floating emoji */
++#react-palette{position:absolute;top:46px;right:120px;background:rgba(8,16,11,.96);border:1px solid rgba(201,168,76,.25);border-radius:12px;padding:8px;display:flex;gap:4px;flex-wrap:wrap;width:200px;z-index:120;box-shadow:0 10px 26px rgba(0,0,0,.55)}
++#react-palette button{background:none;border:none;font-size:22px;cursor:pointer;padding:4px;border-radius:8px;transition:transform .1s,background .12s}
++#react-palette button:hover{background:rgba(255,255,255,.08);transform:scale(1.15)}
++.react-float{position:absolute;transform:translate(-50%,-50%);font-size:34px;z-index:30;pointer-events:none;animation:rfloat 1.8s ease-out forwards;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
++@keyframes rfloat{0%{opacity:0;transform:translate(-50%,-30%) scale(.4)}15%{opacity:1;transform:translate(-50%,-90%) scale(1.2)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-220%) scale(1)}}
++
++/* all-in equity bar on seats + hero */
++.eq-wrap{display:flex;align-items:center;gap:5px;width:96px;margin-top:1px}
++.eq-bar{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;border:1px solid rgba(0,0,0,.3)}
++.eq-fill{height:100%;border-radius:4px;transition:width .35s}
++.eq-pct{font-family:'DM Mono',monospace;font-size:10px;color:#f0ede4;min-width:26px}
++.p-eq{font-family:'DM Mono',monospace;font-size:11px;color:#2ecc71;background:rgba(0,0,0,.35);padding:1px 7px;border-radius:8px;margin-left:6px;font-weight:400}
++
++/* GTO hint glow on the recommended button */
++.abtn.hint{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(201,168,76,.6);animation:hintpulse 1.3s infinite}
++.abtn.hint::after{content:'GTO';position:absolute;top:5px;left:9px;font-size:9px;font-family:'DM Mono',monospace;color:var(--gold-l)}
++@keyframes hintpulse{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(201,168,76,.45)}50%{box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(201,168,76,.75)}}
++
++/* leak of the night card */
++.leak-card{margin:0 0 12px;padding:11px 14px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.22);border-left:3px solid #e74c3c;border-radius:10px;font-size:13px;color:rgba(240,237,228,.9);line-height:1.45}
++.leak-card b{color:#ff8a7a;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
++
++/* ── PHASE 2: seat controls, show/muck, spectator, replayer ── */
++.sp-seat-row{display:flex;gap:10px}
++.sp-seat-row .pcr-btn{flex:1;padding:11px;font-size:13px}
++#sp-host{margin-top:4px}
++
++/* show / muck prompt */
++#showmuck{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:10px;background:rgba(8,16,11,.96);border:1px solid rgba(201,168,76,.3);border-radius:14px;padding:10px 14px;box-shadow:0 10px 28px rgba(0,0,0,.6)}
++#showmuck span{font-size:13px;color:rgba(240,237,228,.85)}
++#showmuck .abtn{height:44px;min-width:88px;font-size:14px}
++
++/* spectator mode */
++.spectating #abar,.spectating #p-area,.spectating #btn-settings{display:none!important}
++.spectating #topbar::after{content:'👁 Spectating';position:absolute;left:50%;transform:translateX(-50%);font-size:12px;color:var(--gold-l);font-weight:600}
++
++/* sitting-out seat */
++.tseat.sitout .av{filter:grayscale(.7);opacity:.55}
++.tseat.sitout .tseat-plate{opacity:.6}
++
++/* range-grid detail replay button */
++.rgd-replay{margin-left:auto;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);color:var(--gold-l);border-radius:7px;font-size:11px;padding:3px 9px;cursor:pointer}
++.rgd-replay:hover{background:rgba(201,168,76,.3)}
++
++/* hand replayer modal */
++#replay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:210;display:flex;align-items:center;justify-content:center;padding:20px}
++#replay.hidden{display:none}
++#replay-box{background:#0d2118;border:1px solid rgba(201,168,76,.25);border-radius:16px;padding:22px;width:100%;max-width:440px;text-align:center}
++#replay-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
++#replay-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold-l)}
++.rp-x{background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer}
++#replay-street{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:rgba(201,168,76,.55);font-weight:600;margin-bottom:12px}
++#replay-board{display:flex;gap:7px;justify-content:center;min-height:90px;margin-bottom:14px}
++#replay-info{font-size:14px;color:#f0ede4;margin-bottom:16px;min-height:20px}
++.replay-hole-wrap{margin-bottom:18px}
++.rp-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:6px}
++#replay-hole{display:flex;gap:7px;justify-content:center}
++#replay-nav{display:flex;gap:12px}
++#replay-nav .abtn{flex:1;height:48px;font-size:15px}
++
++/* host luck-mode toggle */
++.rig-btn.rig-on{background:linear-gradient(180deg,#e8cc7a,#c9a84c);color:#1a1409;border-color:#f0d896;font-weight:600}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..496193e 100644
+index 0edbb13..f7498e5 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1690,7 +1759,7 @@ index 0edbb13..496193e 100644
  <div id="toast"></div>
  
  <!-- ── LOBBY ── -->
-@@ -223,19 +37,25 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -223,18 +37,29 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
      </div>
      <div id="tab-create">
        <div class="lf"><label>Your name</label><input id="c-name" value="" placeholder="Enter your name" maxlength="14"></div>
@@ -1702,6 +1771,9 @@ index 0edbb13..496193e 100644
 -          <select id="c-chips"><option value="500">500</option><option value="1000" selected>1 000</option><option value="2000">2 000</option><option value="5000">5 000</option></select>
 +        <div class="lf"><label>Small blind</label>
 +          <input id="c-sb" type="number" min="1" value="10" oninput="syncBlinds()">
++        </div>
++        <div class="lf"><label>Big blind</label>
++          <input id="c-bb" type="number" min="2" value="20">
          </div>
 -        <div class="lf"><label>Blinds (SB/BB)</label>
 -          <select id="c-blinds">
@@ -1709,23 +1781,31 @@ index 0edbb13..496193e 100644
 -            <option value="10/20" selected>10 / 20</option>
 -            <option value="25/50">25 / 50</option>
 -            <option value="50/100">50 / 100</option>
--          </select>
-+        <div class="lf"><label>Big blind</label>
-+          <input id="c-bb" type="number" min="2" value="20">
-         </div>
-       </div>
-+      <div class="lf"><label>Table size (max players)</label>
-+        <select id="c-maxseats">
-+          <option value="2">2 players (heads-up)</option>
-+          <option value="4">4 players</option>
-+          <option value="6">6 players</option>
-+          <option value="8" selected>8 players</option>
-+        </select>
 +      </div>
++      <div class="lf-row">
++        <div class="lf"><label>Table size</label>
++          <select id="c-maxseats">
++            <option value="2">2 (heads-up)</option>
++            <option value="4">4 players</option>
++            <option value="6">6 players</option>
++            <option value="8" selected>8 players</option>
+           </select>
+         </div>
++        <div class="lf"><label>Blinds up every (min)</label>
++          <input id="c-blindup" type="number" min="0" max="120" step="1" value="0" placeholder="0 = off">
++        </div>
+       </div>
        <button class="btn-gold" onclick="createRoom()">Create table →</button>
        <div class="link-box" id="link-box">
-         <div class="lb-label">Share with friends</div>
-@@ -255,7 +75,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -247,6 +72,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+       <div class="lf"><label>Your name</label><input id="j-name" value="" placeholder="Enter your name" maxlength="14"></div>
+       <div class="lf"><label>Room code</label><input id="j-code" placeholder="e.g. ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.1em"></div>
+       <button class="btn-gold" onclick="joinRoom()">Join table →</button>
++      <button class="btn-copy" style="width:100%;margin-top:8px;padding:11px" onclick="spectateRoom()">👁 Watch only (no seat)</button>
+     </div>
+   </div>
+ </div>
+@@ -255,7 +81,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
  <div id="s-seats" class="screen">
    <div id="seat-box">
      <h2>Choose your seat</h2>
@@ -1734,15 +1814,18 @@ index 0edbb13..496193e 100644
      <div class="seat-grid" id="seat-grid"></div>
      <div class="waiting-players" id="waiting-msg">Waiting for more players… share the link to invite friends</div>
      <button class="btn-gold" id="btn-start-game" onclick="startGame()">Start game →</button>
-@@ -272,17 +92,29 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -272,17 +98,32 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    <div id="topbar">
      <div class="tb-left">
        <span class="tb-logo">♠ PokerTrack</span>
 +      <span class="tb-blinds" id="tb-blinds">NLH · 10/20</span>
++      <span class="tb-level" id="tb-level" style="display:none"></span>
        <span class="tb-hand" id="tb-hand">Hand #1</span>
        <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
      </div>
      <div class="tb-right">
++      <button class="btn-sm" onclick="toggleReact()" id="btn-react" title="Reactions">😀</button>
++      <div id="react-palette" class="hidden"></div>
 +      <button class="btn-sm" onclick="toggleChat()" id="btn-chat" title="Chat">💬</button>
 +      <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
        <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
@@ -1764,7 +1847,7 @@ index 0edbb13..496193e 100644
        <div id="tseats"></div>
        <div id="community">
          <div id="cstreet"></div>
-@@ -292,25 +124,42 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -292,52 +133,100 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        <div id="p-area">
          <div id="p-hole"></div>
          <div id="p-info">
@@ -1816,16 +1899,80 @@ index 0edbb13..496193e 100644
    </div>
  </div>
  
-@@ -329,6 +178,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+-<!-- ── SETTINGS PANEL ── -->
++<!-- ── SETTINGS / OPTIONS PANEL ── -->
+ <div id="settings-panel">
+   <div id="settings-box">
+-    <h3>⚙ Table settings</h3>
+-    <div class="sp-row">
+-      <div>
+-        <span class="sp-label">Small blind</span>
+-        <input class="sp-input" id="sp-sb" type="number" min="1" value="10">
+-      </div>
+-      <div>
+-        <span class="sp-label">Big blind</span>
+-        <input class="sp-input" id="sp-bb" type="number" min="2" value="20">
++    <h3>⚙ Options</h3>
++    <div class="sp-section" style="margin-top:0;padding-top:0;border-top:none">
++      <h4>Your seat</h4>
++      <div class="sp-seat-row">
++        <button class="pcr-btn" id="btn-sitout" onclick="toggleSitOut()">Sit out next hand</button>
++        <button class="pcr-btn" id="btn-topup" onclick="topUp()">Top up stack</button>
        </div>
      </div>
-     <div class="sp-note">Big blind must be at least 2× small blind</div>
-+    <span class="sp-label">Default starting chips (rebuys)</span>
-+    <input class="sp-input" id="sp-start" type="number" min="1" step="50" value="1000">
-     <div class="sp-section">
-       <h4>Player chip stacks</h4>
-       <div id="sp-players"></div>
-@@ -351,493 +202,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+-    <div class="sp-note">Big blind must be at least 2× small blind</div>
+-    <div class="sp-section">
+-      <h4>Player chip stacks</h4>
+-      <div id="sp-players"></div>
++    <div id="sp-host">
++      <div class="sp-section">
++        <h4>Table settings (host)</h4>
++        <div class="sp-row">
++          <div><span class="sp-label">Small blind</span><input class="sp-input" id="sp-sb" type="number" min="1" value="10"></div>
++          <div><span class="sp-label">Big blind</span><input class="sp-input" id="sp-bb" type="number" min="2" value="20"></div>
++        </div>
++        <div class="sp-note">Big blind must be at least 2× small blind</div>
++        <span class="sp-label">Default starting chips (rebuys)</span>
++        <input class="sp-input" id="sp-start" type="number" min="1" step="50" value="1000">
++        <div class="sp-section"><h4>Player chip stacks</h4><div id="sp-players"></div></div>
++        <div class="sp-section"><h4>🎲 Luck mode — rig the river 🤫</h4>
++          <div class="sp-note">Rigged players' hole cards become the nuts when the river hits. Shhh.</div>
++          <div id="sp-rig"></div>
++        </div>
++        <button class="btn-sp-save" onclick="saveSettings()">Save table settings</button>
++      </div>
+     </div>
+-    <button class="btn-sp-save" onclick="saveSettings()">Save settings</button>
+     <button class="btn-sp-close" onclick="toggleSettings()">Close</button>
+   </div>
+ </div>
+ 
++<!-- show / muck prompt -->
++<div id="showmuck" class="hidden">
++  <span>Show your hand?</span>
++  <button class="abtn raise solid" onclick="doShow()">Show</button>
++  <button class="abtn ghost" onclick="doMuck()">Muck</button>
++</div>
++
++<!-- hand replayer -->
++<div id="replay" class="hidden">
++  <div id="replay-box">
++    <div id="replay-head"><span id="replay-title">Hand replay</span><button class="rp-x" onclick="closeReplay()">✕</button></div>
++    <div id="replay-street">Preflop</div>
++    <div id="replay-board"></div>
++    <div id="replay-info"></div>
++    <div class="replay-hole-wrap"><span class="rp-lbl">Your hand</span><div id="replay-hole"></div></div>
++    <div id="replay-nav">
++      <button class="abtn ghost" onclick="replayStep(-1)">◀ Back</button>
++      <button class="abtn raise solid" onclick="replayStep(1)">Next ▶</button>
++    </div>
++  </div>
++</div>
++
+ <!-- ── RESULTS ── -->
+ <div id="s-results" class="screen">
+   <div id="res-inner">
+@@ -351,493 +240,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    </div>
  </div>
  
@@ -2322,10 +2469,10 @@ index 0edbb13..496193e 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..86790d4
+index 0000000..0805307
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,847 @@
+@@ -0,0 +1,1036 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2372,6 +2519,7 @@ index 0000000..86790d4
 +let raiseCtx = null;
 +let myTurnWas = false;
 +let prevHandNum = 0, prevActions = {};
++let equities = null, blindTick = null, isSpectator = false;
 +
 +// ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
 +const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
@@ -2471,23 +2619,40 @@ index 0000000..86790d4
 +  });
 +
 +  socket.on('state_public', state => {
-+    // update seat chooser if visible
++    lastState = state;
++    if (isSpectator) {
++      if (state.phase === 'playing') { showScreen('s-game'); renderGame(state); }
++      else { showScreen('s-seats'); renderSeatChooser(state); }
++      return;
++    }
 +    const cur = document.querySelector('.screen.active').id;
 +    if (cur === 's-seats') renderSeatChooser(state);
 +  });
 +
++  socket.on('spectating', ({ code }) => {
++    roomCode = code; isSpectator = true;
++    document.getElementById('tb-code').textContent = code;
++    document.body.classList.add('spectating');
++    toast('Watching as spectator 👁');
++  });
++
++  socket.on('notice', msg => toast(msg));
++
 +  socket.on('hand_over', ({ winnerName, pot, handName, seats }) => {
 +    sfx.play('win');
 +    setThink(winnerName + ' wins ' + pot + (handName ? ' — ' + handName : ''));
-+    // reveal all cards
 +    if (lastState) {
++      // merge in only the cards that were actually shown (winner / players who chose to show)
 +      seats.forEach(s => {
-+        if (!s) return;
++        if (!s || !s.cards || !s.cards[0]) return;
 +        const ls = lastState.seats[s.seatIndex];
 +        if (ls) ls.cards = s.cards;
 +      });
 +      renderGame({ ...lastState, over: true });
 +    }
++    // offer show/muck if I was in the hand, didn't win, and haven't shown
++    const mine = seats[mySeatIndex];
++    if (!isSpectator && mine && mine.canShow) showMuckPrompt();
 +  });
 +
 +  socket.on('settings_updated', ({ sb, bb, startChips }) => {
@@ -2503,8 +2668,38 @@ index 0000000..86790d4
 +
 +  socket.on('chat_msg', addChatMsg);
 +
++  socket.on('equities', eq => { equities = eq; if (lastState) renderGame(lastState); });
++  socket.on('reaction', ({ seatIndex, emoji }) => floatReaction(seatIndex, emoji));
++  socket.on('blinds_up', ({ level, sb, bb }) => toast('Blinds up! Level ' + level + ' — ' + sb + '/' + bb));
++
 +  socket.on('err', msg => toast(msg));
 +}
++
++// ── REACTIONS ──
++const REACT_EMOJIS = ['😂','🔥','😭','👍','😎','🤔','💩','🎉','😱','🤝'];
++function toggleReact() {
++  const pal = document.getElementById('react-palette');
++  if (!pal.dataset.built) {
++    pal.innerHTML = REACT_EMOJIS.map(e => '<button onclick="sendReact(\'' + e + '\')">' + e + '</button>').join('');
++    pal.dataset.built = '1';
++  }
++  pal.classList.toggle('hidden');
++}
++function sendReact(e) {
++  if (socket && roomCode) socket.emit('react', { code: roomCode, emoji: e });
++  document.getElementById('react-palette').classList.add('hidden');
++}
++function floatReaction(seatIndex, emoji) {
++  const me = lastState && lastState.seats.find(s => s && s.isYou);
++  const pos = (me && me.seatIndex === seatIndex) ? { x: '50%', y: '78%' } : (SEAT_POS[seatIndex] || SEAT_POS[0]);
++  const wrap = document.getElementById('tbets'); if (!wrap) return;
++  const el = document.createElement('div');
++  el.className = 'react-float'; el.textContent = emoji;
++  el.style.left = pos.x; el.style.top = pos.y;
++  wrap.appendChild(el);
++  setTimeout(() => el.remove(), 1800);
++}
++
 +
 +// ── CHAT ──
 +function toggleChat() {
@@ -2558,8 +2753,9 @@ index 0000000..86790d4
 +  if (bb < sb * 2) { toast('Big blind must be at least 2× small blind'); return; }
 +  if (chips < bb) { toast('Starting chips should be at least one big blind'); return; }
 +  const maxSeats = +document.getElementById('c-maxseats').value || 8;
++  const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
 +  initSocket();
-+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats });
++  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin });
 +  document.getElementById('p-nameval').textContent = myName;
 +}
 +
@@ -2573,10 +2769,37 @@ index 0000000..86790d4
 +  document.getElementById('p-nameval').textContent = myName;
 +}
 +
++function spectateRoom() {
++  const code = document.getElementById('j-code').value.trim().toUpperCase();
++  if (!code) { toast('Enter a room code'); return; }
++  initSocket();
++  socket.emit('spectate', { code });
++}
++
 +function copyInvite() {
 +  const url = inviteUrl || window.location.href;
 +  navigator.clipboard.writeText(url).then(() => toast('Link copied!')).catch(() => toast(url));
 +}
++
++// ── SEAT CONTROLS (sit out / top up / show-muck) ──
++function toggleSitOut() {
++  if (!socket || !roomCode) return;
++  const me = lastState && lastState.seats.find(s => s && s.isYou);
++  const on = !(me && me.sittingOut);
++  socket.emit('sit_out', { code: roomCode, on });
++  toast(on ? 'You will sit out the next hand' : 'You are back in next hand');
++  toggleSettings();
++}
++function topUp() { if (socket && roomCode) socket.emit('topup', { code: roomCode }); toggleSettings(); }
++let showMuckT = null;
++function showMuckPrompt() {
++  const el = document.getElementById('showmuck');
++  el.classList.remove('hidden');
++  clearTimeout(showMuckT);
++  showMuckT = setTimeout(() => el.classList.add('hidden'), 5000);
++}
++function doShow() { if (socket && roomCode) socket.emit('show_cards', { code: roomCode }); document.getElementById('showmuck').classList.add('hidden'); }
++function doMuck() { document.getElementById('showmuck').classList.add('hidden'); }
 +
 +// ── SEAT CHOOSER ──
 +function renderSeatChooser(state) {
@@ -2623,31 +2846,67 @@ index 0000000..86790d4
 +  socket.emit('start_game', { code: roomCode });
 +}
 +
-+// ── SETTINGS ──
++// ── SETTINGS / OPTIONS ──
 +function toggleSettings() {
 +  const panel = document.getElementById('settings-panel');
 +  const showing = panel.classList.toggle('show');
 +  if (showing && lastState) {
-+    document.getElementById('sp-sb').value = lastState.sb;
-+    document.getElementById('sp-bb').value = lastState.bb;
-+    if (lastState.startChips) document.getElementById('sp-start').value = lastState.startChips;
-+    // build player chip editors
-+    const div = document.getElementById('sp-players');
-+    div.innerHTML = '';
-+    lastState.seats.forEach(s => {
-+      if (!s) return;
-+      const row = document.createElement('div');
-+      row.className = 'player-chip-row';
-+      row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
-+        + '<input class="pcr-input" type="number" id="pcr-' + s.seatIndex + '" value="' + s.chips + '" min="0">'
-+        + '<button class="pcr-btn" onclick="setChips(' + s.seatIndex + ')">Set</button>';
-+      div.appendChild(row);
-+    });
++    // your-seat controls (everyone)
++    const me = lastState.seats.find(s => s && s.isYou);
++    document.getElementById('btn-sitout').textContent = (me && me.sittingOut) ? "I'm back next hand" : 'Sit out next hand';
++    const tb = document.getElementById('btn-topup');
++    tb.style.display = (me && me.chips < lastState.startChips) ? '' : 'none';
++    tb.textContent = 'Top up to ' + lastState.startChips;
++    // host-only section
++    document.getElementById('sp-host').style.display = lastState.isHost ? '' : 'none';
++    if (lastState.isHost) {
++      document.getElementById('sp-sb').value = lastState.sb;
++      document.getElementById('sp-bb').value = lastState.bb;
++      if (lastState.startChips) document.getElementById('sp-start').value = lastState.startChips;
++      const div = document.getElementById('sp-players');
++      div.innerHTML = '';
++      lastState.seats.forEach(s => {
++        if (!s) return;
++        const row = document.createElement('div');
++        row.className = 'player-chip-row';
++        row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
++          + '<input class="pcr-input" type="number" id="pcr-' + s.seatIndex + '" value="' + s.chips + '" min="0">'
++          + '<button class="pcr-btn" onclick="setChips(' + s.seatIndex + ')">Set</button>';
++        div.appendChild(row);
++      });
++      buildRigList();
++    }
 +  }
 +}
 +
++// Host "Luck mode" toggles
++function buildRigList() {
++  const rig = (lastState && lastState.rig) || [];
++  const div = document.getElementById('sp-rig');
++  if (!div || !lastState) return;
++  div.innerHTML = '';
++  lastState.seats.forEach(s => {
++    if (!s) return;
++    const on = rig.includes(s.seatIndex);
++    const row = document.createElement('div');
++    row.className = 'player-chip-row';
++    row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
++      + '<button class="pcr-btn rig-btn ' + (on ? 'rig-on' : '') + '" onclick="toggleRig(' + s.seatIndex + ',' + (!on) + ')">' + (on ? '🎲 Rigged' : 'Rig') + '</button>';
++    div.appendChild(row);
++  });
++}
++function toggleRig(seatIndex, on) {
++  if (socket && roomCode) socket.emit('set_rig', { code: roomCode, seatIndex, on });
++  if (lastState) {
++    lastState.rig = lastState.rig || [];
++    lastState.rig = on ? [...new Set([...lastState.rig, seatIndex])] : lastState.rig.filter(i => i !== seatIndex);
++    buildRigList();
++  }
++}
++
++// the ⚙ Options button is available to every seated player now
 +function updateSettingsBtn() {
-+  document.getElementById('btn-settings').style.display = isHost ? 'block' : 'none';
++  document.getElementById('btn-settings').style.display = isSpectator ? 'none' : 'block';
 +}
 +
 +function saveSettings() {
@@ -2686,6 +2945,25 @@ index 0000000..86790d4
 +    : t.startsWith('All') ? 'tact-allin' : '';
 +}
 +
++// All-in equity bar (win %) shown under a seat during a run-out.
++function equityBar(pct) {
++  const col = pct >= 60 ? '#2ecc71' : pct >= 35 ? '#e8cc7a' : '#e74c3c';
++  return '<div class="eq-wrap"><div class="eq-bar"><div class="eq-fill" style="width:' + pct + '%;background:' + col + '"></div></div><span class="eq-pct">' + pct + '%</span></div>';
++}
++
++// Topbar tournament level + countdown to the next blind increase.
++function updateBlindLevel(state) {
++  const el = document.getElementById('tb-level');
++  if (!state.blindUpMs) { el.style.display = 'none'; if (blindTick) { clearInterval(blindTick); blindTick = null; } return; }
++  el.style.display = '';
++  const tick = () => {
++    const left = Math.max(0, Math.round(((lastState && lastState.nextBlindAt || 0) - Date.now()) / 1000));
++    el.textContent = 'L' + (state.level || 1) + ' · ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
++  };
++  tick();
++  if (!blindTick) blindTick = setInterval(tick, 1000);
++}
++
 +// A chip-stack bet marker, placed ~42% of the way from a seat toward the pot.
 +function betChip(pos, center, amt) {
 +  const px = parseFloat(pos.x), py = parseFloat(pos.y);
@@ -2701,6 +2979,9 @@ index 0000000..86790d4
 +  document.getElementById('tb-hand').textContent = 'Hand #' + state.handNum;
 +  document.getElementById('tb-blinds').textContent = 'NLH · ' + state.sb + '/' + state.bb;
 +  document.getElementById('tb-code').textContent = state.code || roomCode;
++  updateBlindLevel(state);
++  if (state.handNum !== prevHandNum) equities = null; // clear all-in equities on a new hand
++  if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 +
 +  // Board
 +  const bc = document.getElementById('cboard');
@@ -2738,7 +3019,7 @@ index 0000000..86790d4
 +      continue;
 +    }
 +
-+    seat.className = 'tseat';
++    seat.className = 'tseat' + (s.sittingOut ? ' sitout' : '');
 +    const isTurn = s.isTurn && !state.over;
 +    const avCls = 'av' + (s.folded ? ' folded-av' : '') + (isTurn ? ' myturn' : '');
 +    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -2749,11 +3030,13 @@ index 0000000..86790d4
 +    });
 +
 +    const actTxt = s.lastAction || '';
++    const eq = equities && !s.folded ? equities[s.seatIndex] : null;
 +    seat.innerHTML = '<div class="' + avCls + '">' + initials
 +      + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
 +      + '<div class="tseat-plate"><div class="tseat-name">' + s.name
 +      + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
 +      + '<div class="tseat-chips">' + s.chips + '</div></div>'
++      + (eq != null ? equityBar(eq) : '')
 +      + '<div class="tseat-cards">' + cardsHtml + '</div>'
 +      + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
 +    wrap.appendChild(seat);
@@ -2778,7 +3061,8 @@ index 0000000..86790d4
 +    }
 +    document.getElementById('p-chipsval').textContent = me.chips + ' chips';
 +    document.getElementById('p-wins').textContent = me.wins > 0 ? '🏆' + me.wins : '';
-+    document.getElementById('p-hand').textContent = state.myHand || '';
++    const heroEq = equities && !me.folded ? equities[me.seatIndex] : null;
++    document.getElementById('p-hand').innerHTML = (state.myHand || '') + (heroEq != null ? ' <span class="p-eq">' + heroEq + '% to win</span>' : '');
 +
 +    // action bar
 +    const myTurn = me.isTurn && !state.over;
@@ -2978,8 +3262,35 @@ index 0000000..86790d4
 +      const board = (h.board || []).map(c => cardHTML(c, 'xs')).join('');
 +      const res = h.won ? '<span class="hh-res hw">+' + h.winAmt + '</span>' : h.folded ? '<span class="hh-res hf">Fold</span>' : '<span class="hh-res hl">Lost</span>';
 +      return '<div class="rgd-row"><span class="rgd-act ' + h.pfAction + '">' + h.pfAction + '</span>'
-+        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res + '</div>';
++        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res
++        + '<button class="rgd-replay" onclick="openReplay(' + h.num + ')">▶</button></div>';
 +    }).join('');
++}
++
++// ── HAND REPLAYER (step through a logged hand street-by-street) ──
++let replayData = null, replayStepIdx = 0;
++const REPLAY_STREETS = ['Preflop', 'Flop', 'Turn', 'River', 'Result'];
++function openReplay(num) {
++  const h = (window.__hl || []).find(x => x.num === num);
++  if (!h) return;
++  replayData = h; replayStepIdx = 0;
++  document.getElementById('replay').classList.remove('hidden');
++  renderReplay();
++}
++function closeReplay() { document.getElementById('replay').classList.add('hidden'); }
++function replayStep(d) { replayStepIdx = Math.max(0, Math.min(4, replayStepIdx + d)); renderReplay(); }
++function renderReplay() {
++  const h = replayData; if (!h) return;
++  const n = [0, 3, 4, 5, 5][replayStepIdx];
++  document.getElementById('replay-title').textContent = 'Hand #' + h.num + ' · ' + h.combo;
++  document.getElementById('replay-street').textContent = REPLAY_STREETS[replayStepIdx];
++  let bd = '';
++  for (let i = 0; i < 5; i++) bd += (i < n && h.board[i]) ? cardHTML(h.board[i], 'lg') : '<div class="board-slot"></div>';
++  document.getElementById('replay-board').innerHTML = bd;
++  document.getElementById('replay-hole').innerHTML = h.cards.map(c => cardHTML(c, 'lg')).join('');
++  document.getElementById('replay-info').textContent = replayStepIdx < 4
++    ? 'You ' + h.pfAction + 'ed preflop with ' + h.combo
++    : (h.won ? '✅ You won ' + h.winAmt : h.folded ? '🃏 You folded' : '❌ You lost');
 +}
 +
 +// 13×13 starting-hand grid showing how the player actually played each combo preflop.
@@ -3011,6 +3322,30 @@ index 0000000..86790d4
 +    + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
 +    + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
 +    + '</div><div id="rg-detail"></div></div>';
++}
++
++// One punchy "leak of the night" headline derived from your mistakes.
++function leakHeadline(decs) {
++  const wrong = (decs || []).filter(d => !d.correct);
++  if (!wrong.length) return decs && decs.length ? 'Rock solid — no glaring leaks tonight 🧊' : '';
++  const cat = {};
++  wrong.forEach(d => {
++    let key;
++    if (d.street === 'preflop') key = d.action === 'fold' ? 'pf_fold' : d.action === 'raise' ? 'pf_raise' : 'pf_call';
++    else key = d.street + '_' + (d.action === 'raise' ? 'raise' : d.action === 'check' ? 'check' : d.action === 'fold' ? 'fold' : 'call');
++    cat[key] = (cat[key] || 0) + 1;
++  });
++  const top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0][0];
++  const map = {
++    pf_fold: 'You fold too many playable hands preflop — open wider',
++    pf_raise: 'You open too wide preflop — tighten up',
++    pf_call: 'You flat too much preflop — 3-bet or fold instead',
++    flop_fold: 'You over-fold the flop', turn_fold: 'You over-fold the turn', river_fold: 'You over-fold the river',
++    flop_call: 'You call too light on the flop', turn_call: 'You call too light on the turn', river_call: 'You call too light on the river',
++    flop_raise: 'You raise too thin on the flop', turn_raise: 'You over-bet the turn', river_raise: 'You over-bluff the river',
++    flop_check: 'You check back too many strong flops', turn_check: 'You miss value on the turn', river_check: 'You miss value on the river'
++  };
++  return map[top] || 'Mixed leaks — review your spots';
 +}
 +
 +// circular accuracy gauge with a letter grade
@@ -3063,7 +3398,8 @@ index 0000000..86790d4
 +    html += '<div class="gto-wrap"><div class="gto-t">GTO report card</div>'
 +      + '<div class="gto-hero">' + gtoGauge(gto)
 +      + '<div class="gto-hero-txt"><div class="gto-grade-lbl ' + gtoCls + '">' + gtoLbl + '</div>'
-+      + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>';
++      + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>'
++      + '<div class="leak-card">📌 <b>Leak of the night</b><br>' + leakHeadline(s.gtoDecisions) + '</div>';
 +    // per-street accuracy
 +    html += '<div class="gto-streetacc">' + ['preflop','flop','turn','river'].map(st => {
 +      const ds = s.gtoDecisions.filter(d => d.street === st);
@@ -3162,7 +3498,7 @@ index 0000000..86790d4
 +  el.textContent = msg; el.classList.add('show');
 +  setTimeout(() => el.classList.remove('show'), 2500);
 +}
-+function newSession() { showScreen('s-lobby'); }
++function newSession() { isSpectator = false; document.body.classList.remove('spectating'); showScreen('s-lobby'); }
 +
 +// Auto-join from URL
 +window.addEventListener('load', () => {
@@ -3198,17 +3534,17 @@ new file mode 100644
 index 0000000..eb6788c
 Binary files /dev/null and b/public/sounds/takecard2.mp3 differ
 diff --git a/server.js b/server.js
-index acd381e..de8efdc 100644
+index acd381e..ff3814d 100644
 --- a/server.js
 +++ b/server.js
-@@ -3,527 +3,45 @@ const http = require('http');
+@@ -3,527 +3,46 @@ const http = require('http');
  const { Server } = require('socket.io');
  const path = require('path');
  
 +const engine = require('./src/engine');
 +const {
 +  createRoom, getRoom, deleteRoom, filledSeats, seatPlayer, seatOfSocket,
-+  broadcast, buildView, dealHand, applyAction, scheduleNext
++  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction
 +} = engine;
 +
  const app = express();
@@ -3719,12 +4055,13 @@ index acd381e..de8efdc 100644
 -    // validate blinds
 -    if (bb < sb*2) bb = sb*2;
 -    const code = createRoom(name, socket.id, startChips||1000, sb||10, bb||20);
-+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats }) => {
++  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin }) => {
 +    name = (name || '').toString().trim().slice(0, 14) || 'Host';
 +    startChips = Math.max(1, startChips || 1000);
 +    sb = Math.max(1, sb || 10);
 +    bb = Math.max(sb * 2, bb || 20); // big blind at least 2x small blind
-+    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats);
++    blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
++    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin);
      myRoom = code;
      socket.join(code);
      const room = getRoom(code);
@@ -3748,7 +4085,7 @@ index acd381e..de8efdc 100644
      if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
      myRoom = room.code;
      mySeat = emptyIdx;
-@@ -535,15 +53,39 @@ io.on('connection', socket => {
+@@ -535,35 +54,115 @@ io.on('connection', socket => {
  
    socket.on('take_seat', ({ code, seatIndex, name }) => {
      const room = getRoom(code);
@@ -3790,7 +4127,21 @@ index acd381e..de8efdc 100644
    socket.on('start_game', ({ code }) => {
      const room = getRoom(code);
      if (!room || room.hostId !== socket.id) return;
-@@ -554,8 +96,7 @@ io.on('connection', socket => {
+     if (filledSeats(room).length < 2) { socket.emit('err', 'Need at least 2 players'); return; }
++    startBlindTimer(room);
+     dealHand(room);
+   });
+ 
++  // emoji reactions
++  const EMOJIS = ['😂','🔥','😭','👍','😎','🤔','💩','🎉','😱','🤝'];
++  socket.on('react', ({ code, emoji }) => {
++    const room = getRoom(code);
++    if (!room || !EMOJIS.includes(emoji)) return;
++    const idx = seatOfSocket(room, socket.id);
++    if (idx < 0) return;
++    io.to(room.code).emit('reaction', { seatIndex: idx, emoji });
++  });
++
    socket.on('action', ({ code, action, amount }) => {
      const room = getRoom(code);
      if (!room || mySeat === null) return;
@@ -3800,7 +4151,53 @@ index acd381e..de8efdc 100644
      broadcast(room);
      scheduleNext(room);
    });
-@@ -563,7 +104,7 @@ io.on('connection', socket => {
+ 
++  // sit out / come back (takes effect on the next deal)
++  socket.on('sit_out', ({ code, on }) => {
++    const room = getRoom(code);
++    if (!room) return;
++    const idx = seatOfSocket(room, socket.id);
++    if (idx < 0) return;
++    room.seats[idx].sittingOut = !!on;
++    broadcast(room);
++  });
++
++  // rebuy / top up to the starting stack, only between hands
++  socket.on('topup', ({ code }) => {
++    const room = getRoom(code);
++    if (!room) return;
++    const idx = seatOfSocket(room, socket.id);
++    if (idx < 0) return;
++    const p = room.seats[idx];
++    const inHand = room.phase === 'playing' && !room.over && !p.folded && p.cards.length > 0;
++    if (inHand) { socket.emit('err', 'Top up between hands'); return; }
++    if (p.chips < room.startChips) { p.chips = room.startChips; broadcast(room); socket.emit('notice', 'Topped up to ' + room.startChips); }
++    else socket.emit('notice', 'You already have a full stack');
++  });
++
++  // host-only "Luck mode" — rig a seat to hit a monster on the river (joke/sandbox)
++  socket.on('set_rig', ({ code, seatIndex, on }) => {
++    const room = getRoom(code);
++    if (!room || room.hostId !== socket.id) return;
++    const p = room.seats[seatIndex];
++    if (p) { p.rigged = !!on; broadcast(room); }
++  });
++
++  socket.on('show_cards', ({ code }) => {
++    const room = getRoom(code);
++    if (room) showCardsAction(room, socket.id);
++  });
++
++  // join as a read-only spectator (no seat)
++  socket.on('spectate', ({ code }) => {
++    const room = getRoom(code);
++    if (!room) { socket.emit('err', 'Room not found'); return; }
++    myRoom = room.code;
++    socket.join(room.code);
++    socket.emit('spectating', { code: room.code });
++    socket.emit('state_public', buildView(room, null));
++  });
++
    socket.on('update_settings', ({ code, sb, bb, startChips }) => {
      const room = getRoom(code);
      if (!room || room.hostId !== socket.id) return;
@@ -3809,7 +4206,7 @@ index acd381e..de8efdc 100644
      room.sb = sb;
      room.bb = bb;
      if (startChips) room.startChips = startChips;
-@@ -583,12 +124,20 @@ io.on('connection', socket => {
+@@ -583,12 +182,21 @@ io.on('connection', socket => {
      if (!room) return;
      room.over = true;
      if (room.actionTimer) clearTimeout(room.actionTimer);
@@ -3819,6 +4216,7 @@ index acd381e..de8efdc 100644
 -    }));
 -    io.to(code).emit('session_ended', { stats, handNum: room.handNum });
 -    delete rooms[code];
++    stopBlindTimer(room);
 +    const players = room.seats.filter(Boolean);
 +    const acc = st => { const d = st.gtoDecisions; return d.length ? Math.round(d.filter(x => x.correct).length / d.length * 100) : 0; };
 +    const leaderboard = players.map(p => ({
@@ -3836,7 +4234,7 @@ index acd381e..de8efdc 100644
    });
  
    socket.on('disconnect', () => {
-@@ -599,21 +148,18 @@ io.on('connection', socket => {
+@@ -599,21 +207,18 @@ io.on('connection', socket => {
      if (p) {
        p.connected = false;
        broadcast(room);
@@ -3950,13 +4348,13 @@ index 0000000..2e073b7
 +module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..8dd484b
+index 0000000..807a60b
 --- /dev/null
 +++ b/src/engine.js
-@@ -0,0 +1,391 @@
+@@ -0,0 +1,462 @@
 +// ── Game engine: rooms, dealing, betting, showdown, side pots ──
 +const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
-+const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown } = require('./gto');
++const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities } = require('./gto');
 +
 +const rooms = {};
 +let io = null;
@@ -3972,7 +4370,7 @@ index 0000000..8dd484b
 +  };
 +}
 +
-+function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats) {
++function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin) {
 +  const code = makeCode();
 +  rooms[code] = {
 +    code, hostId: hostSocketId, sb, bb, startChips,
@@ -3981,10 +4379,25 @@ index 0000000..8dd484b
 +    dealer: -1, handNum: 0,
 +    deck: [], di: 0, pot: 0, board: [],
 +    curBet: 0, street: '', queue: [],
-+    over: true, actionTimer: null, phase: 'waiting'
++    over: true, actionTimer: null, phase: 'waiting',
++    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null
 +  };
 +  return code;
 +}
++
++// Tournament blind levels: double the blinds every `blindUpMs` once the game starts.
++function startBlindTimer(room) {
++  if (!room.blindUpMs || room.blindTimer) return;
++  room.nextBlindAt = Date.now() + room.blindUpMs;
++  room.blindTimer = setInterval(() => {
++    if (!rooms[room.code]) return stopBlindTimer(room);
++    room.level++; room.sb *= 2; room.bb *= 2;
++    room.nextBlindAt = Date.now() + room.blindUpMs;
++    io.to(room.code).emit('blinds_up', { level: room.level, sb: room.sb, bb: room.bb });
++    broadcast(room);
++  }, room.blindUpMs);
++}
++function stopBlindTimer(room) { if (room.blindTimer) { clearInterval(room.blindTimer); room.blindTimer = null; } }
 +
 +function getRoom(code) { return rooms[code.toUpperCase()]; }
 +function deleteRoom(code) { delete rooms[code.toUpperCase()]; }
@@ -3997,7 +4410,7 @@ index 0000000..8dd484b
 +    id: socketId, name, socketId, chips, stat: mkStat(chips),
 +    cards: [], bet: 0, committed: 0, folded: false,
 +    lastAction: '', seatIndex, curPF: null, connected: true,
-+    sawFlop: false, pfAction: null
++    sawFlop: false, pfAction: null, sittingOut: false, showCards: false, rigged: false
 +  };
 +}
 +
@@ -4011,7 +4424,8 @@ index 0000000..8dd484b
 +function nextSeat(room, fromIdx) {
 +  for (let i = 1; i <= 8; i++) {
 +    const idx = (fromIdx + i) % 8;
-+    if (room.seats[idx]) return idx;
++    const s = room.seats[idx];
++    if (s && !s.sittingOut) return idx; // sitting-out seats are skipped in the action order
 +  }
 +  return fromIdx;
 +}
@@ -4026,14 +4440,16 @@ index 0000000..8dd484b
 +}
 +
 +function seatView(room, s, i, socketId) {
++  const mine = socketId != null && s.socketId === socketId;
++  // At showdown, opponents' cards are only visible if that player chose to show (or won).
++  const cards = mine ? s.cards : (room.over && s.showCards ? s.cards : s.cards.map(() => null));
 +  return {
 +    seatIndex: i, id: s.id, name: s.name, chips: s.chips, bet: s.bet,
 +    folded: s.folded, lastAction: s.lastAction, wins: s.stat.handsWon,
++    sittingOut: s.sittingOut, showCards: s.showCards,
 +    isDealer: i === room.dealer,
 +    isTurn: !room.over && room.queue[0] === i,
-+    isYou: socketId != null && s.socketId === socketId,
-+    cards: socketId != null && s.socketId === socketId ? s.cards : (room.over ? s.cards : s.cards.map(() => null)),
-+    connected: s.connected
++    isYou: mine, cards, connected: s.connected
 +  };
 +}
 +
@@ -4043,7 +4459,9 @@ index 0000000..8dd484b
 +    code: room.code, handNum: room.handNum, pot: room.pot, board: room.board,
 +    street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
 +    sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
++    level: room.level, nextBlindAt: room.nextBlindAt, blindUpMs: room.blindUpMs,
 +    isHost: room.hostId === socketId,
++    rig: room.hostId === socketId ? room.seats.map((s, i) => s && s.rigged ? i : -1).filter(i => i >= 0) : null,
 +    myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
 +    seats: room.seats.map((s, i) => s ? seatView(room, s, i, socketId) : null)
 +  };
@@ -4054,6 +4472,15 @@ index 0000000..8dd484b
 +    if (p.socketId) io.to(p.socketId).emit('state', buildView(room, p.socketId));
 +  });
 +  io.to(room.code).emit('state_public', buildView(room, null));
++}
++
++function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 0).length <= 1; }
++
++// Broadcast live win% for everyone still in (used during all-in run-outs).
++function emitEquities(room) {
++  const act = activePlayers(room);
++  if (act.length < 2) return;
++  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
 +}
 +
 +function postBlind(room, seatIdx, amt) {
@@ -4068,7 +4495,7 @@ index 0000000..8dd484b
 +  let idx = startSeatIdx;
 +  for (let i = 0; i < 8; i++) {
 +    const seat = room.seats[idx];
-+    if (seat && !seat.folded && seat.chips > 0 && idx !== excludeIdx) q.push(idx);
++    if (seat && !seat.folded && !seat.sittingOut && seat.chips > 0 && idx !== excludeIdx) q.push(idx);
 +    idx = nextSeat(room, idx);
 +    if (idx === startSeatIdx) break;
 +  }
@@ -4077,8 +4504,8 @@ index 0000000..8dd484b
 +
 +function dealHand(room) {
 +  if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
-+  const players = filledSeats(room);
-+  if (players.length < 2) { room.phase = 'waiting'; broadcast(room); return; }
++  const players = filledSeats(room).filter(p => !p.sittingOut); // sitting-out players aren't dealt in
++  if (players.length < 2) { room.phase = 'waiting'; room.over = true; broadcast(room); return; }
 +
 +  room.handNum++;
 +  room.phase = 'playing';
@@ -4088,11 +4515,15 @@ index 0000000..8dd484b
 +
 +  players.forEach(p => {
 +    p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
-+    p.sawFlop = false; p.pfAction = null;
++    p.sawFlop = false; p.pfAction = null; p.showCards = false;
 +    if (p.chips <= 0) p.chips = room.startChips;
 +  });
++  // sitting-out players sit the hand out (excluded from action/showdown)
++  filledSeats(room).filter(p => p.sittingOut).forEach(p => {
++    p.folded = true; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = 'Sitting out'; p.curPF = null; p.showCards = false;
++  });
 +
-+  const filled = room.seats.map((s, i) => s ? i : -1).filter(i => i >= 0);
++  const filled = room.seats.map((s, i) => (s && !s.sittingOut) ? i : -1).filter(i => i >= 0);
 +  if (room.dealer === -1 || filled.indexOf(room.dealer) === -1) room.dealer = filled[0];
 +  else room.dealer = filled[(filled.indexOf(room.dealer) + 1) % filled.length];
 +
@@ -4118,7 +4549,10 @@ index 0000000..8dd484b
 +function scheduleNext(room) {
 +  if (room.over) return;
 +  if (activePlayers(room).length <= 1) { endHand(room); return; }
-+  if (!room.queue.length) { advStreet(room); return; }
++  if (!room.queue.length) {
++    if (bettingClosed(room)) emitEquities(room); // all-in run-out: show live equities
++    advStreet(room); return;
++  }
 +
 +  const seatIdx = room.queue[0];
 +  const player = room.seats[seatIdx];
@@ -4219,13 +4653,35 @@ index 0000000..8dd484b
 +  });
 +}
 +
++// Host "🎲 Luck mode": the two unused cards that make the strongest hand on this board.
++function bestHoleForBoard(board, pool) {
++  let best = null, pick = null;
++  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
++    const ev = evalBest([pool[i], pool[j], ...board]);
++    if (!best || cmpE(ev, best) > 0) { best = ev; pick = [pool[i], pool[j]]; }
++  }
++  return pick;
++}
++// On the river, swap each rigged (still-in) player's hole cards to a monster, no collisions.
++function applyRig(room) {
++  const rigged = activePlayers(room).filter(p => p.rigged);
++  if (!rigged.length) return;
++  const used = new Set(room.board.map(c => c.r + c.s));
++  activePlayers(room).filter(p => !p.rigged).forEach(p => p.cards.forEach(c => used.add(c.r + c.s)));
++  rigged.forEach(p => {
++    const pool = makeDeck().filter(c => !used.has(c.r + c.s));
++    const pick = bestHoleForBoard(room.board, pool);
++    if (pick) { p.cards = pick; p.curPF = pfStr(pick[0], pick[1]); pick.forEach(c => used.add(c.r + c.s)); }
++  });
++}
++
 +function advStreet(room) {
 +  filledSeats(room).forEach(p => p.bet = 0);
 +  room.curBet = 0;
 +
 +  if (room.street === 'preflop')   { room.board.push(room.deck[room.di++], room.deck[room.di++], room.deck[room.di++]); room.street = 'flop'; filledSeats(room).forEach(p => { if (!p.folded) p.sawFlop = true; }); }
 +  else if (room.street === 'flop') { room.board.push(room.deck[room.di++]); room.street = 'turn'; }
-+  else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; }
++  else if (room.street === 'turn') { room.board.push(room.deck[room.di++]); room.street = 'river'; applyRig(room); }
 +  else { endHand(room); return; }
 +
 +  room.queue = buildQueue(room, nextSeat(room, room.dealer));
@@ -4282,6 +4738,8 @@ index 0000000..8dd484b
 +  let handName = '';
 +  if (showdown && !winner.folded) { handName = evalBest([...winner.cards, ...room.board]).name; winner.lastAction = handName; }
 +  filledSeats(room).forEach(p => { if (winnings[p.seatIndex] > 0) p.stat.handsWon++; });
++  // at showdown the winner(s) must show; everyone else may show/muck during the break
++  if (showdown) filledSeats(room).forEach(p => { if (winnings[p.seatIndex] > 0) p.showCards = true; });
 +
 +  filledSeats(room).filter(p => p.folded).forEach(p => {
 +    if (room.board.length >= 3 && winner && !winner.folded) {
@@ -4331,26 +4789,37 @@ index 0000000..8dd484b
 +
 +  broadcast(room);
 +
++  // can this player still choose to show? (was in the hand, didn't win, hasn't shown)
++  const canShow = p => showdown && !p.folded && !p.showCards && winnings[p.seatIndex] === 0;
 +  io.to(room.code).emit('hand_over', {
 +    winnerId: winner.id,
 +    winnerName: winnerCount > 1 ? 'Split pot' : winner.name,
 +    pot: room.pot, handName,
-+    seats: room.seats.map((s, i) => s ? { seatIndex: i, name: s.name, cards: s.cards, folded: s.folded } : null)
++    seats: room.seats.map((s, i) => s ? { seatIndex: i, name: s.name, cards: s.showCards ? s.cards : s.cards.map(() => null), folded: s.folded, canShow: canShow(s) } : null)
 +  });
 +
-+  room.actionTimer = setTimeout(() => { if (rooms[room.code]) dealHand(room); }, 4000);
++  room.actionTimer = setTimeout(() => { if (rooms[room.code]) dealHand(room); }, 5000);
++}
++
++// A player chooses to show their mucked hand during the showdown break.
++function showCardsAction(room, socketId) {
++  const idx = seatOfSocket(room, socketId);
++  if (idx < 0 || !room.over) return;
++  const p = room.seats[idx];
++  if (p && !p.folded && p.cards.length) { p.showCards = true; broadcast(room); }
 +}
 +
 +module.exports = {
 +  rooms, attach, createRoom, getRoom, deleteRoom, filledSeats, activePlayers,
-+  seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext
++  seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext,
++  startBlindTimer, stopBlindTimer, showCardsAction
 +};
 diff --git a/src/gto.js b/src/gto.js
 new file mode 100644
-index 0000000..dc83bbb
+index 0000000..e436c82
 --- /dev/null
 +++ b/src/gto.js
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,207 @@
 +// ── GTO scoring: preflop heuristics (Chen) + postflop Monte-Carlo equity ──
 +const { RV, makeDeck, evalBest, cmpE } = require('./cards');
 +
@@ -4519,4 +4988,42 @@ index 0000000..dc83bbb
 +  return { correct, note, eq, chen: null };
 +}
 +
-+module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown };
++// Win% for each entrant at an all-in/showdown, running out the remaining board.
++function showdownEquities(entrants, board, iters) {
++  const used = new Set([...board, ...entrants.flatMap(e => e.cards)].map(c => c.r + c.s));
++  const deck = makeDeck().filter(c => !used.has(c.r + c.s));
++  const need = 5 - board.length;
++  const runs = need === 0 ? 1 : iters;
++  const win = {}; entrants.forEach(e => win[e.seatIndex] = 0);
++  for (let i = 0; i < runs; i++) {
++    for (let k = 0; k < need; k++) { const j = k + (0 | Math.random() * (deck.length - k)); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; }
++    const full = board.concat(deck.slice(0, need));
++    let best = null, winners = [];
++    entrants.forEach(e => {
++      const ev = evalBest(e.cards.concat(full));
++      const c = best ? cmpE(ev, best) : 1;
++      if (c > 0) { best = ev; winners = [e.seatIndex]; }
++      else if (c === 0) winners.push(e.seatIndex);
++    });
++    winners.forEach(s => win[s] += 1 / winners.length);
++  }
++  const out = {}; entrants.forEach(e => out[e.seatIndex] = Math.round(win[e.seatIndex] / runs * 100));
++  return out;
++}
++
++// GTO-recommended action for a spot (for the optional hints / training mode).
++function suggestAction(ctx) {
++  if (ctx.street === 'preflop') {
++    const thr = OPEN_THRESH[ctx.position] || 8;
++    if (!ctx.facingRaise) return ctx.chen >= thr ? 'raise' : (ctx.canCheck ? 'check' : 'fold');
++    if (ctx.chen >= thr + 5) return 'raise';
++    if (ctx.chen >= thr + 1) return 'call';
++    return 'fold';
++  }
++  if (ctx.canCheck) return ctx.equity >= 0.55 ? 'raise' : 'check';
++  if (ctx.equity >= 0.6) return 'raise';
++  if (ctx.equity + 0.02 >= ctx.potOdds) return 'call';
++  return 'fold';
++}
++
++module.exports = { pfStr, chenScore, posLabel, OPEN_THRESH, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities, suggestAction };

@@ -6,7 +6,7 @@ const path = require('path');
 const engine = require('./src/engine');
 const {
   createRoom, getRoom, deleteRoom, filledSeats, seatPlayer, seatOfSocket,
-  broadcast, buildView, dealHand, applyAction, scheduleNext
+  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction
 } = engine;
 
 const app = express();
@@ -21,12 +21,13 @@ io.on('connection', socket => {
   let myRoom = null;
   let mySeat = null;
 
-  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats }) => {
+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin }) => {
     name = (name || '').toString().trim().slice(0, 14) || 'Host';
     startChips = Math.max(1, startChips || 1000);
     sb = Math.max(1, sb || 10);
     bb = Math.max(sb * 2, bb || 20); // big blind at least 2x small blind
-    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats);
+    blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
+    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin);
     myRoom = code;
     socket.join(code);
     const room = getRoom(code);
@@ -90,7 +91,18 @@ io.on('connection', socket => {
     const room = getRoom(code);
     if (!room || room.hostId !== socket.id) return;
     if (filledSeats(room).length < 2) { socket.emit('err', 'Need at least 2 players'); return; }
+    startBlindTimer(room);
     dealHand(room);
+  });
+
+  // emoji reactions
+  const EMOJIS = ['😂','🔥','😭','👍','😎','🤔','💩','🎉','😱','🤝'];
+  socket.on('react', ({ code, emoji }) => {
+    const room = getRoom(code);
+    if (!room || !EMOJIS.includes(emoji)) return;
+    const idx = seatOfSocket(room, socket.id);
+    if (idx < 0) return;
+    io.to(room.code).emit('reaction', { seatIndex: idx, emoji });
   });
 
   socket.on('action', ({ code, action, amount }) => {
@@ -99,6 +111,52 @@ io.on('connection', socket => {
     if (!applyAction(room, mySeat, action, amount || 0)) return;
     broadcast(room);
     scheduleNext(room);
+  });
+
+  // sit out / come back (takes effect on the next deal)
+  socket.on('sit_out', ({ code, on }) => {
+    const room = getRoom(code);
+    if (!room) return;
+    const idx = seatOfSocket(room, socket.id);
+    if (idx < 0) return;
+    room.seats[idx].sittingOut = !!on;
+    broadcast(room);
+  });
+
+  // rebuy / top up to the starting stack, only between hands
+  socket.on('topup', ({ code }) => {
+    const room = getRoom(code);
+    if (!room) return;
+    const idx = seatOfSocket(room, socket.id);
+    if (idx < 0) return;
+    const p = room.seats[idx];
+    const inHand = room.phase === 'playing' && !room.over && !p.folded && p.cards.length > 0;
+    if (inHand) { socket.emit('err', 'Top up between hands'); return; }
+    if (p.chips < room.startChips) { p.chips = room.startChips; broadcast(room); socket.emit('notice', 'Topped up to ' + room.startChips); }
+    else socket.emit('notice', 'You already have a full stack');
+  });
+
+  // host-only "Luck mode" — rig a seat to hit a monster on the river (joke/sandbox)
+  socket.on('set_rig', ({ code, seatIndex, on }) => {
+    const room = getRoom(code);
+    if (!room || room.hostId !== socket.id) return;
+    const p = room.seats[seatIndex];
+    if (p) { p.rigged = !!on; broadcast(room); }
+  });
+
+  socket.on('show_cards', ({ code }) => {
+    const room = getRoom(code);
+    if (room) showCardsAction(room, socket.id);
+  });
+
+  // join as a read-only spectator (no seat)
+  socket.on('spectate', ({ code }) => {
+    const room = getRoom(code);
+    if (!room) { socket.emit('err', 'Room not found'); return; }
+    myRoom = room.code;
+    socket.join(room.code);
+    socket.emit('spectating', { code: room.code });
+    socket.emit('state_public', buildView(room, null));
   });
 
   socket.on('update_settings', ({ code, sb, bb, startChips }) => {
@@ -124,6 +182,7 @@ io.on('connection', socket => {
     if (!room) return;
     room.over = true;
     if (room.actionTimer) clearTimeout(room.actionTimer);
+    stopBlindTimer(room);
     const players = room.seats.filter(Boolean);
     const acc = st => { const d = st.gtoDecisions; return d.length ? Math.round(d.filter(x => x.correct).length / d.length * 100) : 0; };
     const leaderboard = players.map(p => ({

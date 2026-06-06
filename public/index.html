@@ -48,13 +48,18 @@
           <input id="c-bb" type="number" min="2" value="20">
         </div>
       </div>
-      <div class="lf"><label>Table size (max players)</label>
-        <select id="c-maxseats">
-          <option value="2">2 players (heads-up)</option>
-          <option value="4">4 players</option>
-          <option value="6">6 players</option>
-          <option value="8" selected>8 players</option>
-        </select>
+      <div class="lf-row">
+        <div class="lf"><label>Table size</label>
+          <select id="c-maxseats">
+            <option value="2">2 (heads-up)</option>
+            <option value="4">4 players</option>
+            <option value="6">6 players</option>
+            <option value="8" selected>8 players</option>
+          </select>
+        </div>
+        <div class="lf"><label>Blinds up every (min)</label>
+          <input id="c-blindup" type="number" min="0" max="120" step="1" value="0" placeholder="0 = off">
+        </div>
       </div>
       <button class="btn-gold" onclick="createRoom()">Create table →</button>
       <div class="link-box" id="link-box">
@@ -67,6 +72,7 @@
       <div class="lf"><label>Your name</label><input id="j-name" value="" placeholder="Enter your name" maxlength="14"></div>
       <div class="lf"><label>Room code</label><input id="j-code" placeholder="e.g. ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.1em"></div>
       <button class="btn-gold" onclick="joinRoom()">Join table →</button>
+      <button class="btn-copy" style="width:100%;margin-top:8px;padding:11px" onclick="spectateRoom()">👁 Watch only (no seat)</button>
     </div>
   </div>
 </div>
@@ -93,10 +99,13 @@
     <div class="tb-left">
       <span class="tb-logo">♠ PokerTrack</span>
       <span class="tb-blinds" id="tb-blinds">NLH · 10/20</span>
+      <span class="tb-level" id="tb-level" style="display:none"></span>
       <span class="tb-hand" id="tb-hand">Hand #1</span>
       <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
     </div>
     <div class="tb-right">
+      <button class="btn-sm" onclick="toggleReact()" id="btn-react" title="Reactions">😀</button>
+      <div id="react-palette" class="hidden"></div>
       <button class="btn-sm" onclick="toggleChat()" id="btn-chat" title="Chat">💬</button>
       <button class="btn-sm" onclick="toggleMute()" id="btn-mute" title="Sound effects">🔊</button>
       <button class="btn-sm" onclick="toggleSettings()" id="btn-settings" style="display:none">⚙ Settings</button>
@@ -163,29 +172,58 @@
   </div>
 </div>
 
-<!-- ── SETTINGS PANEL ── -->
+<!-- ── SETTINGS / OPTIONS PANEL ── -->
 <div id="settings-panel">
   <div id="settings-box">
-    <h3>⚙ Table settings</h3>
-    <div class="sp-row">
-      <div>
-        <span class="sp-label">Small blind</span>
-        <input class="sp-input" id="sp-sb" type="number" min="1" value="10">
-      </div>
-      <div>
-        <span class="sp-label">Big blind</span>
-        <input class="sp-input" id="sp-bb" type="number" min="2" value="20">
+    <h3>⚙ Options</h3>
+    <div class="sp-section" style="margin-top:0;padding-top:0;border-top:none">
+      <h4>Your seat</h4>
+      <div class="sp-seat-row">
+        <button class="pcr-btn" id="btn-sitout" onclick="toggleSitOut()">Sit out next hand</button>
+        <button class="pcr-btn" id="btn-topup" onclick="topUp()">Top up stack</button>
       </div>
     </div>
-    <div class="sp-note">Big blind must be at least 2× small blind</div>
-    <span class="sp-label">Default starting chips (rebuys)</span>
-    <input class="sp-input" id="sp-start" type="number" min="1" step="50" value="1000">
-    <div class="sp-section">
-      <h4>Player chip stacks</h4>
-      <div id="sp-players"></div>
+    <div id="sp-host">
+      <div class="sp-section">
+        <h4>Table settings (host)</h4>
+        <div class="sp-row">
+          <div><span class="sp-label">Small blind</span><input class="sp-input" id="sp-sb" type="number" min="1" value="10"></div>
+          <div><span class="sp-label">Big blind</span><input class="sp-input" id="sp-bb" type="number" min="2" value="20"></div>
+        </div>
+        <div class="sp-note">Big blind must be at least 2× small blind</div>
+        <span class="sp-label">Default starting chips (rebuys)</span>
+        <input class="sp-input" id="sp-start" type="number" min="1" step="50" value="1000">
+        <div class="sp-section"><h4>Player chip stacks</h4><div id="sp-players"></div></div>
+        <div class="sp-section"><h4>🎲 Luck mode — rig the river 🤫</h4>
+          <div class="sp-note">Rigged players' hole cards become the nuts when the river hits. Shhh.</div>
+          <div id="sp-rig"></div>
+        </div>
+        <button class="btn-sp-save" onclick="saveSettings()">Save table settings</button>
+      </div>
     </div>
-    <button class="btn-sp-save" onclick="saveSettings()">Save settings</button>
     <button class="btn-sp-close" onclick="toggleSettings()">Close</button>
+  </div>
+</div>
+
+<!-- show / muck prompt -->
+<div id="showmuck" class="hidden">
+  <span>Show your hand?</span>
+  <button class="abtn raise solid" onclick="doShow()">Show</button>
+  <button class="abtn ghost" onclick="doMuck()">Muck</button>
+</div>
+
+<!-- hand replayer -->
+<div id="replay" class="hidden">
+  <div id="replay-box">
+    <div id="replay-head"><span id="replay-title">Hand replay</span><button class="rp-x" onclick="closeReplay()">✕</button></div>
+    <div id="replay-street">Preflop</div>
+    <div id="replay-board"></div>
+    <div id="replay-info"></div>
+    <div class="replay-hole-wrap"><span class="rp-lbl">Your hand</span><div id="replay-hole"></div></div>
+    <div id="replay-nav">
+      <button class="abtn ghost" onclick="replayStep(-1)">◀ Back</button>
+      <button class="abtn raise solid" onclick="replayStep(1)">Next ▶</button>
+    </div>
   </div>
 </div>
 

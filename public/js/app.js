@@ -44,6 +44,7 @@ let inviteUrl = '';
 let raiseCtx = null;
 let myTurnWas = false;
 let prevHandNum = 0, prevActions = {};
+let equities = null, blindTick = null, isSpectator = false;
 
 // ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
 const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
@@ -143,23 +144,40 @@ function initSocket() {
   });
 
   socket.on('state_public', state => {
-    // update seat chooser if visible
+    lastState = state;
+    if (isSpectator) {
+      if (state.phase === 'playing') { showScreen('s-game'); renderGame(state); }
+      else { showScreen('s-seats'); renderSeatChooser(state); }
+      return;
+    }
     const cur = document.querySelector('.screen.active').id;
     if (cur === 's-seats') renderSeatChooser(state);
   });
 
+  socket.on('spectating', ({ code }) => {
+    roomCode = code; isSpectator = true;
+    document.getElementById('tb-code').textContent = code;
+    document.body.classList.add('spectating');
+    toast('Watching as spectator 👁');
+  });
+
+  socket.on('notice', msg => toast(msg));
+
   socket.on('hand_over', ({ winnerName, pot, handName, seats }) => {
     sfx.play('win');
     setThink(winnerName + ' wins ' + pot + (handName ? ' — ' + handName : ''));
-    // reveal all cards
     if (lastState) {
+      // merge in only the cards that were actually shown (winner / players who chose to show)
       seats.forEach(s => {
-        if (!s) return;
+        if (!s || !s.cards || !s.cards[0]) return;
         const ls = lastState.seats[s.seatIndex];
         if (ls) ls.cards = s.cards;
       });
       renderGame({ ...lastState, over: true });
     }
+    // offer show/muck if I was in the hand, didn't win, and haven't shown
+    const mine = seats[mySeatIndex];
+    if (!isSpectator && mine && mine.canShow) showMuckPrompt();
   });
 
   socket.on('settings_updated', ({ sb, bb, startChips }) => {
@@ -175,8 +193,38 @@ function initSocket() {
 
   socket.on('chat_msg', addChatMsg);
 
+  socket.on('equities', eq => { equities = eq; if (lastState) renderGame(lastState); });
+  socket.on('reaction', ({ seatIndex, emoji }) => floatReaction(seatIndex, emoji));
+  socket.on('blinds_up', ({ level, sb, bb }) => toast('Blinds up! Level ' + level + ' — ' + sb + '/' + bb));
+
   socket.on('err', msg => toast(msg));
 }
+
+// ── REACTIONS ──
+const REACT_EMOJIS = ['😂','🔥','😭','👍','😎','🤔','💩','🎉','😱','🤝'];
+function toggleReact() {
+  const pal = document.getElementById('react-palette');
+  if (!pal.dataset.built) {
+    pal.innerHTML = REACT_EMOJIS.map(e => '<button onclick="sendReact(\'' + e + '\')">' + e + '</button>').join('');
+    pal.dataset.built = '1';
+  }
+  pal.classList.toggle('hidden');
+}
+function sendReact(e) {
+  if (socket && roomCode) socket.emit('react', { code: roomCode, emoji: e });
+  document.getElementById('react-palette').classList.add('hidden');
+}
+function floatReaction(seatIndex, emoji) {
+  const me = lastState && lastState.seats.find(s => s && s.isYou);
+  const pos = (me && me.seatIndex === seatIndex) ? { x: '50%', y: '78%' } : (SEAT_POS[seatIndex] || SEAT_POS[0]);
+  const wrap = document.getElementById('tbets'); if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'react-float'; el.textContent = emoji;
+  el.style.left = pos.x; el.style.top = pos.y;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
 
 // ── CHAT ──
 function toggleChat() {
@@ -230,8 +278,9 @@ function createRoom() {
   if (bb < sb * 2) { toast('Big blind must be at least 2× small blind'); return; }
   if (chips < bb) { toast('Starting chips should be at least one big blind'); return; }
   const maxSeats = +document.getElementById('c-maxseats').value || 8;
+  const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
   initSocket();
-  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats });
+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin });
   document.getElementById('p-nameval').textContent = myName;
 }
 
@@ -245,10 +294,37 @@ function joinRoom() {
   document.getElementById('p-nameval').textContent = myName;
 }
 
+function spectateRoom() {
+  const code = document.getElementById('j-code').value.trim().toUpperCase();
+  if (!code) { toast('Enter a room code'); return; }
+  initSocket();
+  socket.emit('spectate', { code });
+}
+
 function copyInvite() {
   const url = inviteUrl || window.location.href;
   navigator.clipboard.writeText(url).then(() => toast('Link copied!')).catch(() => toast(url));
 }
+
+// ── SEAT CONTROLS (sit out / top up / show-muck) ──
+function toggleSitOut() {
+  if (!socket || !roomCode) return;
+  const me = lastState && lastState.seats.find(s => s && s.isYou);
+  const on = !(me && me.sittingOut);
+  socket.emit('sit_out', { code: roomCode, on });
+  toast(on ? 'You will sit out the next hand' : 'You are back in next hand');
+  toggleSettings();
+}
+function topUp() { if (socket && roomCode) socket.emit('topup', { code: roomCode }); toggleSettings(); }
+let showMuckT = null;
+function showMuckPrompt() {
+  const el = document.getElementById('showmuck');
+  el.classList.remove('hidden');
+  clearTimeout(showMuckT);
+  showMuckT = setTimeout(() => el.classList.add('hidden'), 5000);
+}
+function doShow() { if (socket && roomCode) socket.emit('show_cards', { code: roomCode }); document.getElementById('showmuck').classList.add('hidden'); }
+function doMuck() { document.getElementById('showmuck').classList.add('hidden'); }
 
 // ── SEAT CHOOSER ──
 function renderSeatChooser(state) {
@@ -295,31 +371,67 @@ function startGame() {
   socket.emit('start_game', { code: roomCode });
 }
 
-// ── SETTINGS ──
+// ── SETTINGS / OPTIONS ──
 function toggleSettings() {
   const panel = document.getElementById('settings-panel');
   const showing = panel.classList.toggle('show');
   if (showing && lastState) {
-    document.getElementById('sp-sb').value = lastState.sb;
-    document.getElementById('sp-bb').value = lastState.bb;
-    if (lastState.startChips) document.getElementById('sp-start').value = lastState.startChips;
-    // build player chip editors
-    const div = document.getElementById('sp-players');
-    div.innerHTML = '';
-    lastState.seats.forEach(s => {
-      if (!s) return;
-      const row = document.createElement('div');
-      row.className = 'player-chip-row';
-      row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
-        + '<input class="pcr-input" type="number" id="pcr-' + s.seatIndex + '" value="' + s.chips + '" min="0">'
-        + '<button class="pcr-btn" onclick="setChips(' + s.seatIndex + ')">Set</button>';
-      div.appendChild(row);
-    });
+    // your-seat controls (everyone)
+    const me = lastState.seats.find(s => s && s.isYou);
+    document.getElementById('btn-sitout').textContent = (me && me.sittingOut) ? "I'm back next hand" : 'Sit out next hand';
+    const tb = document.getElementById('btn-topup');
+    tb.style.display = (me && me.chips < lastState.startChips) ? '' : 'none';
+    tb.textContent = 'Top up to ' + lastState.startChips;
+    // host-only section
+    document.getElementById('sp-host').style.display = lastState.isHost ? '' : 'none';
+    if (lastState.isHost) {
+      document.getElementById('sp-sb').value = lastState.sb;
+      document.getElementById('sp-bb').value = lastState.bb;
+      if (lastState.startChips) document.getElementById('sp-start').value = lastState.startChips;
+      const div = document.getElementById('sp-players');
+      div.innerHTML = '';
+      lastState.seats.forEach(s => {
+        if (!s) return;
+        const row = document.createElement('div');
+        row.className = 'player-chip-row';
+        row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
+          + '<input class="pcr-input" type="number" id="pcr-' + s.seatIndex + '" value="' + s.chips + '" min="0">'
+          + '<button class="pcr-btn" onclick="setChips(' + s.seatIndex + ')">Set</button>';
+        div.appendChild(row);
+      });
+      buildRigList();
+    }
   }
 }
 
+// Host "Luck mode" toggles
+function buildRigList() {
+  const rig = (lastState && lastState.rig) || [];
+  const div = document.getElementById('sp-rig');
+  if (!div || !lastState) return;
+  div.innerHTML = '';
+  lastState.seats.forEach(s => {
+    if (!s) return;
+    const on = rig.includes(s.seatIndex);
+    const row = document.createElement('div');
+    row.className = 'player-chip-row';
+    row.innerHTML = '<span class="pcr-name">' + s.name + '</span>'
+      + '<button class="pcr-btn rig-btn ' + (on ? 'rig-on' : '') + '" onclick="toggleRig(' + s.seatIndex + ',' + (!on) + ')">' + (on ? '🎲 Rigged' : 'Rig') + '</button>';
+    div.appendChild(row);
+  });
+}
+function toggleRig(seatIndex, on) {
+  if (socket && roomCode) socket.emit('set_rig', { code: roomCode, seatIndex, on });
+  if (lastState) {
+    lastState.rig = lastState.rig || [];
+    lastState.rig = on ? [...new Set([...lastState.rig, seatIndex])] : lastState.rig.filter(i => i !== seatIndex);
+    buildRigList();
+  }
+}
+
+// the ⚙ Options button is available to every seated player now
 function updateSettingsBtn() {
-  document.getElementById('btn-settings').style.display = isHost ? 'block' : 'none';
+  document.getElementById('btn-settings').style.display = isSpectator ? 'none' : 'block';
 }
 
 function saveSettings() {
@@ -358,6 +470,25 @@ function actClass(t) {
     : t.startsWith('All') ? 'tact-allin' : '';
 }
 
+// All-in equity bar (win %) shown under a seat during a run-out.
+function equityBar(pct) {
+  const col = pct >= 60 ? '#2ecc71' : pct >= 35 ? '#e8cc7a' : '#e74c3c';
+  return '<div class="eq-wrap"><div class="eq-bar"><div class="eq-fill" style="width:' + pct + '%;background:' + col + '"></div></div><span class="eq-pct">' + pct + '%</span></div>';
+}
+
+// Topbar tournament level + countdown to the next blind increase.
+function updateBlindLevel(state) {
+  const el = document.getElementById('tb-level');
+  if (!state.blindUpMs) { el.style.display = 'none'; if (blindTick) { clearInterval(blindTick); blindTick = null; } return; }
+  el.style.display = '';
+  const tick = () => {
+    const left = Math.max(0, Math.round(((lastState && lastState.nextBlindAt || 0) - Date.now()) / 1000));
+    el.textContent = 'L' + (state.level || 1) + ' · ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+  };
+  tick();
+  if (!blindTick) blindTick = setInterval(tick, 1000);
+}
+
 // A chip-stack bet marker, placed ~42% of the way from a seat toward the pot.
 function betChip(pos, center, amt) {
   const px = parseFloat(pos.x), py = parseFloat(pos.y);
@@ -373,6 +504,9 @@ function renderGame(state) {
   document.getElementById('tb-hand').textContent = 'Hand #' + state.handNum;
   document.getElementById('tb-blinds').textContent = 'NLH · ' + state.sb + '/' + state.bb;
   document.getElementById('tb-code').textContent = state.code || roomCode;
+  updateBlindLevel(state);
+  if (state.handNum !== prevHandNum) equities = null; // clear all-in equities on a new hand
+  if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 
   // Board
   const bc = document.getElementById('cboard');
@@ -410,7 +544,7 @@ function renderGame(state) {
       continue;
     }
 
-    seat.className = 'tseat';
+    seat.className = 'tseat' + (s.sittingOut ? ' sitout' : '');
     const isTurn = s.isTurn && !state.over;
     const avCls = 'av' + (s.folded ? ' folded-av' : '') + (isTurn ? ' myturn' : '');
     const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -421,11 +555,13 @@ function renderGame(state) {
     });
 
     const actTxt = s.lastAction || '';
+    const eq = equities && !s.folded ? equities[s.seatIndex] : null;
     seat.innerHTML = '<div class="' + avCls + '">' + initials
       + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
       + '<div class="tseat-plate"><div class="tseat-name">' + s.name
       + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
       + '<div class="tseat-chips">' + s.chips + '</div></div>'
+      + (eq != null ? equityBar(eq) : '')
       + '<div class="tseat-cards">' + cardsHtml + '</div>'
       + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
     wrap.appendChild(seat);
@@ -450,7 +586,8 @@ function renderGame(state) {
     }
     document.getElementById('p-chipsval').textContent = me.chips + ' chips';
     document.getElementById('p-wins').textContent = me.wins > 0 ? '🏆' + me.wins : '';
-    document.getElementById('p-hand').textContent = state.myHand || '';
+    const heroEq = equities && !me.folded ? equities[me.seatIndex] : null;
+    document.getElementById('p-hand').innerHTML = (state.myHand || '') + (heroEq != null ? ' <span class="p-eq">' + heroEq + '% to win</span>' : '');
 
     // action bar
     const myTurn = me.isTurn && !state.over;
@@ -650,8 +787,35 @@ function showCombo(combo) {
       const board = (h.board || []).map(c => cardHTML(c, 'xs')).join('');
       const res = h.won ? '<span class="hh-res hw">+' + h.winAmt + '</span>' : h.folded ? '<span class="hh-res hf">Fold</span>' : '<span class="hh-res hl">Lost</span>';
       return '<div class="rgd-row"><span class="rgd-act ' + h.pfAction + '">' + h.pfAction + '</span>'
-        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res + '</div>';
+        + '<span class="rgd-cards">' + cards + (board ? '<span class="mk-sep">/</span>' + board : '') + '</span>' + res
+        + '<button class="rgd-replay" onclick="openReplay(' + h.num + ')">▶</button></div>';
     }).join('');
+}
+
+// ── HAND REPLAYER (step through a logged hand street-by-street) ──
+let replayData = null, replayStepIdx = 0;
+const REPLAY_STREETS = ['Preflop', 'Flop', 'Turn', 'River', 'Result'];
+function openReplay(num) {
+  const h = (window.__hl || []).find(x => x.num === num);
+  if (!h) return;
+  replayData = h; replayStepIdx = 0;
+  document.getElementById('replay').classList.remove('hidden');
+  renderReplay();
+}
+function closeReplay() { document.getElementById('replay').classList.add('hidden'); }
+function replayStep(d) { replayStepIdx = Math.max(0, Math.min(4, replayStepIdx + d)); renderReplay(); }
+function renderReplay() {
+  const h = replayData; if (!h) return;
+  const n = [0, 3, 4, 5, 5][replayStepIdx];
+  document.getElementById('replay-title').textContent = 'Hand #' + h.num + ' · ' + h.combo;
+  document.getElementById('replay-street').textContent = REPLAY_STREETS[replayStepIdx];
+  let bd = '';
+  for (let i = 0; i < 5; i++) bd += (i < n && h.board[i]) ? cardHTML(h.board[i], 'lg') : '<div class="board-slot"></div>';
+  document.getElementById('replay-board').innerHTML = bd;
+  document.getElementById('replay-hole').innerHTML = h.cards.map(c => cardHTML(c, 'lg')).join('');
+  document.getElementById('replay-info').textContent = replayStepIdx < 4
+    ? 'You ' + h.pfAction + 'ed preflop with ' + h.combo
+    : (h.won ? '✅ You won ' + h.winAmt : h.folded ? '🃏 You folded' : '❌ You lost');
 }
 
 // 13×13 starting-hand grid showing how the player actually played each combo preflop.
@@ -683,6 +847,30 @@ function buildRangeGrid(handLog) {
     + '<span><i style="background:#c9a84c"></i>Raise</span><span><i style="background:#46d27c"></i>Call</span>'
     + '<span><i style="background:#5aa9e6"></i>Check</span><span><i style="background:rgba(255,255,255,.12)"></i>Fold / not dealt</span>'
     + '</div><div id="rg-detail"></div></div>';
+}
+
+// One punchy "leak of the night" headline derived from your mistakes.
+function leakHeadline(decs) {
+  const wrong = (decs || []).filter(d => !d.correct);
+  if (!wrong.length) return decs && decs.length ? 'Rock solid — no glaring leaks tonight 🧊' : '';
+  const cat = {};
+  wrong.forEach(d => {
+    let key;
+    if (d.street === 'preflop') key = d.action === 'fold' ? 'pf_fold' : d.action === 'raise' ? 'pf_raise' : 'pf_call';
+    else key = d.street + '_' + (d.action === 'raise' ? 'raise' : d.action === 'check' ? 'check' : d.action === 'fold' ? 'fold' : 'call');
+    cat[key] = (cat[key] || 0) + 1;
+  });
+  const top = Object.entries(cat).sort((a, b) => b[1] - a[1])[0][0];
+  const map = {
+    pf_fold: 'You fold too many playable hands preflop — open wider',
+    pf_raise: 'You open too wide preflop — tighten up',
+    pf_call: 'You flat too much preflop — 3-bet or fold instead',
+    flop_fold: 'You over-fold the flop', turn_fold: 'You over-fold the turn', river_fold: 'You over-fold the river',
+    flop_call: 'You call too light on the flop', turn_call: 'You call too light on the turn', river_call: 'You call too light on the river',
+    flop_raise: 'You raise too thin on the flop', turn_raise: 'You over-bet the turn', river_raise: 'You over-bluff the river',
+    flop_check: 'You check back too many strong flops', turn_check: 'You miss value on the turn', river_check: 'You miss value on the river'
+  };
+  return map[top] || 'Mixed leaks — review your spots';
 }
 
 // circular accuracy gauge with a letter grade
@@ -735,7 +923,8 @@ function buildPC(p) {
     html += '<div class="gto-wrap"><div class="gto-t">GTO report card</div>'
       + '<div class="gto-hero">' + gtoGauge(gto)
       + '<div class="gto-hero-txt"><div class="gto-grade-lbl ' + gtoCls + '">' + gtoLbl + '</div>'
-      + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>';
+      + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>'
+      + '<div class="leak-card">📌 <b>Leak of the night</b><br>' + leakHeadline(s.gtoDecisions) + '</div>';
     // per-street accuracy
     html += '<div class="gto-streetacc">' + ['preflop','flop','turn','river'].map(st => {
       const ds = s.gtoDecisions.filter(d => d.street === st);
@@ -834,7 +1023,7 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 }
-function newSession() { showScreen('s-lobby'); }
+function newSession() { isSpectator = false; document.body.classList.remove('spectating'); showScreen('s-lobby'); }
 
 // Auto-join from URL
 window.addEventListener('load', () => {
