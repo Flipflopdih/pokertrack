@@ -1068,6 +1068,9 @@ function buildPC(p) {
   const gtoCls = gto >= 70 ? 'g' : gto >= 50 ? 'n' : 'r';
   const gtoLbl = gto >= 75 ? 'Solver-approved 🎯' : gto >= 60 ? 'Solid fundamentals 👍' : gto >= 45 ? 'Some leaks to plug 🔧' : 'Spew alert 🚨';
   const gtoCol = gto >= 70 ? '#2ecc71' : gto >= 50 ? '#e8cc7a' : '#e74c3c';
+  const bluffs = s.bluffs || 0, bw = s.bluffsWon || 0;
+  const bluffRate = bluffs ? Math.round(bw / bluffs * 100) : 0;
+  const bluffLbl = bluffs === 0 ? 'Honest 😇' : bluffRate >= 60 ? 'Slippery 🥷' : bluffRate >= 30 ? 'Balanced ⚖️' : 'Gets caught 🃏';
   const inits = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'neu';
 
@@ -1082,8 +1085,9 @@ function buildPC(p) {
     + '<div class="ps"><div class="ps-l">Win rate</div><div class="ps-v ' + (wr>=40?'g':wr>=25?'n':'r') + '">' + wr + '%</div></div>'
     + '<div class="ps"><div class="ps-l">VPIP</div><div class="ps-v n">' + vp + '%</div></div>'
     + '<div class="ps"><div class="ps-l">Fold rate</div><div class="ps-v">' + fr + '%</div></div>'
-    + '<div class="ps"><div class="ps-l">Ghost wins</div><div class="ps-v n">' + (s.ghostWins||0) + '</div></div>'
-    + '<div class="ps"><div class="ps-l">Luck · ' + luckLbl + '</div><div class="ps-v n">' + luck
+    + '<div class="ps"><div class="ps-l">Bluffs · ' + bluffLbl + '</div><div class="ps-v n">' + bluffs
+    + (bluffs ? '<span style="font-size:11px;color:rgba(255,255,255,.35)"> (' + bluffRate + '% got through)</span>' : '') + '</div></div>'
+    + '<div class="ps"><div class="ps-l">Luck · ' + luckLbl + ' <span style="font-size:9px;opacity:.6">(showdowns only)</span></div><div class="ps-v n">' + luck
     + '<span style="font-size:11px;color:rgba(255,255,255,.35)"> (' + (luckChips>0?'+':'') + luckChips + ' vs EV)</span></div>'
     + '<div class="luck-row"><div class="luck-t"><div class="luck-f" style="width:' + Math.min(luck,100) + '%"></div></div></div></div>'
     + '</div></div>';

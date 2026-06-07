@@ -11,7 +11,8 @@ function makeCode() { return Math.random().toString(36).substr(2, 6).toUpperCase
 function mkStat(startChips) {
   return {
     startChips, chips: startChips, handsPlayed: 0, handsWon: 0, vpip: 0, folds: 0, ghostWins: 0,
-    luckNum: 0, luckDen: 0, luckChips: 0, // pot-weighted realized-equity luck
+    luckNum: 0, luckDen: 0, luckChips: 0, // showdown-only realized-equity luck (not affected by bluffs)
+    bluffs: 0, bluffsWon: 0,              // low-equity bets/raises and how many got through
     gtoDecisions: [], chipHistory: [startChips], handLog: []
   };
 }
@@ -166,7 +167,7 @@ function dealHand(room) {
 
   players.forEach(p => {
     p.folded = false; p.cards = []; p.bet = 0; p.committed = 0; p.lastAction = '';
-    p.sawFlop = false; p.pfAction = null; p.showCards = false;
+    p.sawFlop = false; p.pfAction = null; p.showCards = false; p.bluffedThisHand = false;
     if (p.chips <= 0) p.chips = room.startChips;
   });
   // sitting-out players sit the hand out (excluded from action/showdown)
@@ -309,6 +310,8 @@ function trackGTO(room, player, action) {
     const opps = Math.max(1, activePlayers(room).length - 1);
     const iters = opps <= 1 ? 240 : opps === 2 ? 180 : 140;
     ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
+    // a "bluff": a postflop bet/raise with weak equity
+    if ((action === 'raise') && ctx.equity < 0.33) { player.stat.bluffs++; player.bluffedThisHand = true; }
   }
 
   // remember the player's strongest preflop action (for the range grid)
@@ -420,40 +423,46 @@ function endHand(room) {
     }
   });
 
-  // Pot-weighted "run-good" luck: compare each contesting hand's result to its
-  // flop equity vs the opponents who actually saw the flop. Big pots count more.
-  const flopSeers = filledSeats(room).filter(p => p.sawFlop);
+  // "Run-good" luck — ONLY from showdown pots, so a successful bluff (winning a
+  // pot you were behind in) counts as skill, not luck. Pot-weighted.
   const flop = room.board.slice(0, 3);
+  const wentToShowdown = active.length > 1 && room.board.length === 5;
+  const uncontested = active.length === 1; // everyone folded → a bluff/steal got through
 
   filledSeats(room).forEach(p => {
     p.stat.handsPlayed++;
     p.stat.chips = p.chips;
     p.stat.chipHistory.push(p.chips);
+    // bluff success: a low-equity bet/raise this hand that won the pot uncontested
+    if (p.bluffedThisHand && uncontested && winnings[p.seatIndex] > 0) p.stat.bluffsWon++;
     if (!p.curPF) return;
 
-    const opps = flopSeers.filter(o => o !== p);
-    let perHand, weight, realizedChips = 0;
-    if (p.sawFlop && opps.length && room.board.length >= 3) {
+    let perHand = null, weight, realizedChips = 0;
+    if (wentToShowdown && !p.folded) {
+      // pure card luck: did your hand run above/below its flop equity vs the showdown field?
+      const opps = active.filter(o => o !== p);
       const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
       realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
       perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
       weight = room.bb ? room.pot / room.bb : 1;
-    } else {
-      // preflop-only: card-dealing luck (dampened, light weight)
+    } else if (!p.sawFlop) {
+      // hands that didn't reach a flop: just the card-dealing luck (very light weight)
       const cp = Math.max(0, Math.min(1, (chenScore(p.cards[0], p.cards[1]) + 2) / 22));
-      perHand = (cp - 0.5);
-      weight = 1;
+      perHand = (cp - 0.5) * 0.5;
+      weight = 0.5;
     }
-    p.stat.luckNum += perHand * weight;
-    p.stat.luckDen += weight;
-    p.stat.luckChips += realizedChips;
+    if (perHand !== null) {
+      p.stat.luckNum += perHand * weight;
+      p.stat.luckDen += weight;
+      p.stat.luckChips += realizedChips;
+    }
 
     p.stat.handLog.push({
       num: room.handNum, cards: [...p.cards], board: [...room.board],
       pfLabel: p.curPF.label, pfPts: p.curPF.pts,
       combo: comboLabel(p.cards[0], p.cards[1]),
       pfAction: p.pfAction || (p.folded ? 'fold' : 'check'),
-      luckPct: Math.round((perHand + 1) / 2 * 100),
+      luckPct: perHand !== null ? Math.round((perHand + 1) / 2 * 100) : 50,
       won: winnings[p.seatIndex] > 0, folded: p.folded,
       ghostWin: p.folded && room.board.length >= 3 && winner && !winner.folded && cmpE(evalBest([...p.cards, ...room.board]), evalBest([...winner.cards, ...room.board])) > 0,
       winAmt: winnings[p.seatIndex] || 0

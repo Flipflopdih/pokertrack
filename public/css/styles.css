@@ -57,8 +57,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm:hover{background:rgba(255,255,255,.12)}
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
-#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 24px 118px}
-#table{position:relative;width:min(96vw,1700px);height:clamp(460px,min(80vh,52vw),880px);margin:0 auto;transform:scale(var(--tscale,1));transform-origin:center center;
+#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:12px 20px 92px}
+#table{position:relative;width:min(94vw,calc((100vh - 160px) * 2.2));height:min(calc(100vh - 160px),46vw);margin:0 auto;transform:scale(var(--tscale,1));transform-origin:center center;
   background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
