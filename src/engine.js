@@ -119,10 +119,9 @@ function buildView(room, socketId) {
 }
 
 function broadcast(room) {
-  filledSeats(room).forEach(p => {
-    if (p.socketId) io.to(p.socketId).emit('state', buildView(room, p.socketId));
-  });
-  io.to(room.code).emit('state_public', buildView(room, null));
+  // send each socket in the room its own personalized view (seated, unseated, or spectating)
+  const ids = io.sockets.adapter.rooms.get(room.code);
+  if (ids) for (const sid of ids) io.to(sid).emit('state', buildView(room, sid));
 }
 
 function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 0).length <= 1; }

@@ -47,8 +47,7 @@ io.on('connection', socket => {
     socket.join(code);
     const room = getRoom(code);
     room.hostPid = myPid; // remember the host by stable id so reconnects keep host
-    seatPlayer(room, 0, name, socket.id, startChips, myPid); // host takes seat 0
-    mySeat = 0;
+    // host is NOT auto-seated — they pick a seat + buy-in on the table view
     socket.emit('room_created', { code, url: '/room/' + code });
     broadcast(room);
   });
@@ -57,34 +56,30 @@ io.on('connection', socket => {
     const room = getRoom(code);
     if (!room) { socket.emit('err', 'Room not found'); return; }
     touchRoom(room);
-    // already seated here (e.g. a duplicate join after reconnect)? just resume.
+    myRoom = room.code; myPid = playerId || socket.id;
+    // name is taken on take_seat
+    socket.join(room.code);
+    // already seated here (reconnect)? resume that seat. otherwise they pick a seat.
     const existing = playerId && seatByPlayer(room, playerId);
     if (existing) {
       existing.socketId = socket.id; existing.connected = true; existing.sittingOut = false;
-      if (room.hostPid === playerId) room.hostId = socket.id; // keep host on rejoin
-      myRoom = room.code; mySeat = existing.seatIndex; myPid = playerId;
-      socket.join(room.code);
+      if (room.hostPid === playerId) room.hostId = socket.id;
+      mySeat = existing.seatIndex;
       socket.emit('joined_room', { code: room.code, seatIndex: existing.seatIndex });
-      broadcast(room); return;
+    } else {
+      socket.emit('room_joined', { code: room.code });
     }
-    name = (name || '').toString().trim().slice(0, 14) || 'Player';
-    let emptyIdx = -1;
-    for (let i = 0; i < room.maxSeats; i++) { if (!room.seats[i]) { emptyIdx = i; break; } }
-    if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
-    myRoom = room.code; mySeat = emptyIdx; myPid = playerId || socket.id;
-    socket.join(room.code);
-    seatPlayer(room, emptyIdx, name, socket.id, room.startChips, myPid);
-    socket.emit('joined_room', { code: room.code, seatIndex: emptyIdx });
     broadcast(room);
   });
 
-  socket.on('take_seat', ({ code, seatIndex, name, playerId }) => {
+  socket.on('take_seat', ({ code, seatIndex, name, playerId, chips }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('err', 'Room not found'); return; }
     if (seatIndex < 0 || seatIndex >= room.maxSeats) return;
     if (room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
     if (room.phase === 'playing' && !room.over) { socket.emit('err', 'Wait for the hand to finish'); return; }
     touchRoom(room);
+    const buyIn = Math.max(room.bb, Math.min(10000000, Math.round(+chips || room.startChips)));
 
     const existingIdx = seatOfSocket(room, socket.id);
     if (existingIdx !== -1) {
@@ -95,7 +90,7 @@ io.on('connection', socket => {
       room.seats[existingIdx] = null;
       if (room.dealer === existingIdx) room.dealer = seatIndex;
     } else {
-      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips, playerId || socket.id);
+      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, buyIn, playerId || socket.id);
     }
     myRoom = room.code; mySeat = seatIndex; myPid = playerId || socket.id;
     socket.join(room.code);
@@ -182,7 +177,7 @@ io.on('connection', socket => {
     myRoom = room.code;
     socket.join(room.code);
     socket.emit('spectating', { code: room.code });
-    socket.emit('state_public', buildView(room, null));
+    socket.emit('state', buildView(room, socket.id));
   });
 
   socket.on('update_settings', ({ code, sb, bb, startChips }) => {

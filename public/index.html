@@ -6,7 +6,7 @@
 <title>PokerTrack</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
-<link rel="stylesheet" href="/css/styles.css?v=13">
+<link rel="stylesheet" href="/css/styles.css?v=14">
 </head>
 <body>
 <!-- shared SVG assets (gradients + card-back lattice) -->
@@ -107,6 +107,8 @@
       <span class="tb-code" id="tb-code" onclick="copyInvite()" title="Copy invite link">—</span>
     </div>
     <div class="tb-right">
+      <button class="btn-sm" onclick="scaleTable(-1)" title="Smaller table">🔍−</button>
+      <button class="btn-sm" onclick="scaleTable(1)" title="Bigger table">🔍+</button>
       <button class="btn-sm" onclick="toggleReact()" id="btn-react" title="Reactions">😀</button>
       <div id="react-palette" class="hidden"></div>
       <button class="btn-sm" onclick="toggleChat()" id="btn-chat" title="Chat">💬</button>
@@ -133,6 +135,7 @@
         <div id="cboard"></div>
         <div id="cpot"></div>
       </div>
+      <div id="table-cta" class="hidden"></div>
       <div id="p-area">
         <div id="p-hole"></div>
         <div id="p-info">
@@ -210,6 +213,18 @@
   </div>
 </div>
 
+<!-- buy-in dialog when taking a seat -->
+<div id="buyin" class="hidden">
+  <div id="buyin-box">
+    <h3>Take seat <span id="buyin-seat">1</span></h3>
+    <span class="sp-label">Buy-in (chips)</span>
+    <input class="sp-input" id="buyin-amt" type="number" min="1" step="50" value="1000">
+    <div class="sp-note" id="buyin-note">Default stack for this table.</div>
+    <button class="btn-sp-save" onclick="confirmBuyIn()">Sit down</button>
+    <button class="btn-sp-close" onclick="closeBuyIn()">Cancel</button>
+  </div>
+</div>
+
 <!-- show / muck prompt -->
 <div id="showmuck" class="hidden">
   <span>Show your hand?</span>
@@ -245,6 +260,6 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=13"></script>
+<script src="/js/app.js?v=14"></script>
 </body>
 </html>

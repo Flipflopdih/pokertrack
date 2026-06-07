@@ -108,6 +108,11 @@ const sfx = (() => {
   };
 })();
 function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
+// manual table zoom (persists)
+let tableScale = parseFloat(localStorage.getItem('pt-tscale')) || 1;
+function applyTableScale() { document.documentElement.style.setProperty('--tscale', tableScale.toFixed(2)); }
+function scaleTable(dir) { tableScale = Math.max(0.6, Math.min(1.6, tableScale + dir * 0.1)); localStorage.setItem('pt-tscale', tableScale); applyTableScale(); toast('Table ' + Math.round(tableScale * 100) + '%'); }
+applyTableScale();
 // unlock + preload audio on the first user interaction
 window.addEventListener('pointerdown', () => sfx.init(), { once: true });
 
@@ -115,44 +120,29 @@ window.addEventListener('pointerdown', () => sfx.init(), { once: true });
 function initSocket() {
   socket = io();
 
-  socket.on('room_created', ({ code, url }) => {
+  function enterRoom(code) {
     roomCode = code;
-    saveSession();
-    try { history.replaceState(null, '', '/room/' + code); } catch (e) {} // a refresh keeps you in this game
-    inviteUrl = window.location.origin + url;
-    document.getElementById('lb-url').textContent = inviteUrl;
-    document.getElementById('link-box').classList.add('show');
-    document.getElementById('seat-invite-url').textContent = inviteUrl;
-    document.getElementById('seat-code').textContent = code;
-    document.getElementById('tb-code').textContent = code;
-    showScreen('s-seats');
-  });
-
-  socket.on('joined_room', ({ code, seatIndex }) => {
-    roomCode = code;
-    mySeatIndex = seatIndex;
     saveSession();
     try { history.replaceState(null, '', '/room/' + code); } catch (e) {}
     inviteUrl = window.location.origin + '/room/' + code;
-    document.getElementById('seat-invite-url').textContent = inviteUrl;
-    document.getElementById('seat-code').textContent = code;
     document.getElementById('tb-code').textContent = code;
-    if (document.querySelector('.screen.active').id !== 's-game') showScreen('s-seats');
-  });
+    showScreen('s-game'); // straight to the table; you pick a seat there
+  }
+
+  socket.on('room_created', ({ code }) => { enterRoom(code); });
+  socket.on('room_joined', ({ code }) => { enterRoom(code); });
+  socket.on('joined_room', ({ code, seatIndex }) => { mySeatIndex = seatIndex; enterRoom(code); });
 
   socket.on('reconnect_failed', () => { clearSession(); });
 
   socket.on('state', state => {
     lastState = state;
     isHost = state.isHost;
-    // find my seat
     const me = state.seats.find(s => s && s.isYou);
     if (me) mySeatIndex = me.seatIndex;
-    const currentScreen = document.querySelector('.screen.active').id;
-    if (state.phase === 'playing' && currentScreen !== 's-game') showScreen('s-game');
-    if (state.phase === 'waiting' && currentScreen === 's-game') showScreen('s-seats');
-    renderSeatChooser(state);
-    if (state.phase === 'playing') renderGame(state);
+    const cur = document.querySelector('.screen.active').id;
+    if (roomCode && cur !== 's-game' && cur !== 's-results') showScreen('s-game');
+    renderGame(state);
     updateSettingsBtn();
   });
 
@@ -378,10 +368,45 @@ function renderSeatChooser(state) {
     : 'Waiting for the host to start the game…';
 }
 
-function chooseSeat(idx) {
-  if (!socket) { toast('Connect first'); return; }
-  socket.emit('take_seat', { code: roomCode, seatIndex: idx, name: myName, playerId });
-  mySeatIndex = idx;
+function chooseSeat(idx) { openBuyIn(idx); }
+
+// ── TAKE A SEAT (with buy-in) ──
+let buyInSeat = null;
+function openBuyIn(seatIndex) {
+  if (!socket || !lastState) { toast('Connect first'); return; }
+  if (lastState.phase === 'playing' && !lastState.over) { toast('Wait for the hand to finish'); return; }
+  if (!myName) myName = (document.getElementById('j-name').value || document.getElementById('c-name').value || 'Player').trim() || 'Player';
+  buyInSeat = seatIndex;
+  document.getElementById('buyin-seat').textContent = seatIndex + 1;
+  const def = lastState.startChips || 1000;
+  document.getElementById('buyin-amt').value = def;
+  document.getElementById('buyin-note').textContent = 'Default for this table: ' + def + ' chips.';
+  document.getElementById('buyin').classList.remove('hidden');
+  setTimeout(() => document.getElementById('buyin-amt').focus(), 50);
+}
+function closeBuyIn() { document.getElementById('buyin').classList.add('hidden'); buyInSeat = null; }
+function confirmBuyIn() {
+  if (buyInSeat == null || !socket || !roomCode) return;
+  const chips = Math.max(1, Math.round(+document.getElementById('buyin-amt').value || (lastState.startChips || 1000)));
+  socket.emit('take_seat', { code: roomCode, seatIndex: buyInSeat, name: myName, playerId, chips });
+  mySeatIndex = buyInSeat;
+  document.getElementById('p-nameval').textContent = myName;
+  closeBuyIn();
+}
+
+// Center call-to-action while a table is in the pre-start lobby.
+function renderTableCTA(state, me) {
+  const cta = document.getElementById('table-cta');
+  if (state.phase !== 'waiting' || isSpectator) { cta.classList.add('hidden'); cta.innerHTML = ''; return; }
+  const seated = state.seats.filter(Boolean).length;
+  let html;
+  if (!me) html = '<div class="cta-msg">Pick a seat to join 👇</div>';
+  else if (seated < 2) html = '<div class="cta-msg">Waiting for players…</div><div class="cta-sub">Share the link to invite friends</div>';
+  else if (state.isHost) html = '<button class="cta-start" onclick="startGame()">Start game →</button>';
+  else html = '<div class="cta-msg">Waiting for the host to start…</div>';
+  html += '<button class="cta-link" onclick="copyInvite()">📋 Copy invite link</button>';
+  cta.innerHTML = html;
+  cta.classList.remove('hidden');
 }
 
 function startGame() {
@@ -605,9 +630,11 @@ function renderGame(state) {
     seat.style.top = pos.y;
 
     if (!s) {
-      seat.className = 'tseat empty';
-      seat.innerHTML = '<div class="av">SIT</div>'
-        + '<div class="tseat-plate"><div class="tseat-name">Seat ' + (i+1) + '</div></div>';
+      const canSit = !isSpectator && (state.phase !== 'playing' || state.over);
+      seat.className = 'tseat empty' + (canSit ? ' sit-open' : '');
+      seat.innerHTML = '<div class="av">' + (canSit ? '+ SIT' : 'SIT') + '</div>'
+        + '<div class="tseat-plate"><div class="tseat-name">Seat ' + (i + 1) + '</div></div>';
+      if (canSit) seat.onclick = () => openBuyIn(i);
       wrap.appendChild(seat);
       continue;
     }
@@ -619,7 +646,7 @@ function renderGame(state) {
 
     let cardsHtml = '';
     if (s.cards) s.cards.forEach(c => {
-      cardsHtml += c ? cardHTML(c, 'xs' + (s.folded ? ' ghost-card' : '')) : cardHTML(null, 'xs');
+      cardsHtml += c ? cardHTML(c, 'sm' + (s.folded ? ' ghost-card' : '')) : cardHTML(null, 'sm');
     });
 
     const actTxt = s.lastAction || '';
@@ -642,6 +669,10 @@ function renderGame(state) {
 
   // hero's own bet chip (hero sits bottom-centre)
   if (me && me.bet > 0) betWrap.appendChild(betChip({ x: '50%', y: '86%' }, center, me.bet));
+
+  // waiting-room call to action (sit down / start) + hide hero area when not seated
+  renderTableCTA(state, me);
+  document.getElementById('p-area').style.display = me ? '' : 'none';
 
   // My cards + info
   if (me) {
