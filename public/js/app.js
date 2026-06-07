@@ -45,9 +45,12 @@ let raiseCtx = null;
 let myTurnWas = false;
 let prevHandNum = 0, prevActions = {};
 let equities = null, blindTick = null, isSpectator = false;
+let pendingPre = null, prevBoardLen = 0, turnTick = null;
+function saveSession() { try { localStorage.setItem('pt-session', JSON.stringify({ code: roomCode, name: myName })); } catch (e) {} }
+function clearSession() { try { localStorage.removeItem('pt-session'); } catch (e) {} }
 
 // ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
-const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
+const SOUND_FILES = { deal:'/sounds/card.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
 const SOUND_CAP = {};
 const SOUND_GAIN = { check: 0.5, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.75, allin: 1.0 };
 const sfx = (() => {
@@ -66,12 +69,24 @@ const sfx = (() => {
     return ctx;
   }
   function tone(f, t0, dur, gain) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02); }
+  // a dry knuckle-knock on the table (two quick thumps) — the real "check" sound
+  function knock(t0) {
+    for (let k = 0; k < 2; k++) {
+      const t = t0 + k * 0.085;
+      const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
+      f.type = 'lowpass'; f.frequency.value = 400;
+      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.09);
+    }
+  }
   return {
     get muted() { return muted; },
     toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); if (!muted) ensure(); return muted; },
     init() { ensure(); },
     play(name) {
       if (muted || !ensure()) return;
+      if (name === 'check') { knock(ctx.currentTime); return; } // dedicated check knock
       if (name === 'win') { const t = ctx.currentTime;[523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 0.13)); return; }
       const buf = buffers[name];
       if (!buf) { if (buffers[name] === undefined) preload(); return; }
@@ -109,6 +124,7 @@ function initSocket() {
 
   socket.on('room_created', ({ code, url }) => {
     roomCode = code;
+    saveSession();
     inviteUrl = window.location.origin + url;
     document.getElementById('lb-url').textContent = inviteUrl;
     document.getElementById('link-box').classList.add('show');
@@ -121,12 +137,15 @@ function initSocket() {
   socket.on('joined_room', ({ code, seatIndex }) => {
     roomCode = code;
     mySeatIndex = seatIndex;
+    saveSession();
     inviteUrl = window.location.origin + '/room/' + code;
     document.getElementById('seat-invite-url').textContent = inviteUrl;
     document.getElementById('seat-code').textContent = code;
     document.getElementById('tb-code').textContent = code;
-    showScreen('s-seats');
+    if (document.querySelector('.screen.active').id !== 's-game') showScreen('s-seats');
   });
+
+  socket.on('reconnect_failed', () => { clearSession(); });
 
   socket.on('state', state => {
     lastState = state;
@@ -189,6 +208,7 @@ function initSocket() {
   });
 
   socket.on('session_ended', ({ you, leaderboard, handNum }) => {
+    clearSession();
     buildResults(you, leaderboard, handNum);
     showScreen('s-results');
   });
@@ -281,8 +301,9 @@ function createRoom() {
   if (chips < bb) { toast('Starting chips should be at least one big blind'); return; }
   const maxSeats = +document.getElementById('c-maxseats').value || 8;
   const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
+  const turnSec = Math.max(0, +document.getElementById('c-turn').value || 0);
   initSocket();
-  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin });
+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec });
   document.getElementById('p-nameval').textContent = myName;
 }
 
@@ -472,6 +493,40 @@ function actClass(t) {
     : t.startsWith('All') ? 'tact-allin' : '';
 }
 
+// ── PRE-ACTIONS (queue a move for when it's your turn) ──
+function renderPreActions(state, me, myTurn) {
+  const bar = document.getElementById('preaction');
+  const show = !myTurn && me && !me.folded && !state.over && state.phase === 'playing' && me.chips > 0 && !me.sittingOut;
+  bar.classList.toggle('hidden', !show);
+  if (!show) { if (pendingPre) pendingPre = null; return; }
+  ['checkfold', 'callany', 'fold'].forEach(k => document.getElementById('pre-' + k).classList.toggle('armed', pendingPre === k));
+}
+function togglePre(k) { pendingPre = pendingPre === k ? null : k; if (lastState) renderPreActions(lastState, lastState.seats.find(s => s && s.isYou), false); }
+function firePre(pa, call) {
+  if (pa === 'fold') send('fold');
+  else if (pa === 'checkfold') send(call > 0 ? 'fold' : 'check');
+  else if (pa === 'callany') send(call > 0 ? 'call' : 'check');
+}
+
+// ── TURN CLOCK ──
+function updateTurnClock() {
+  const ind = document.getElementById('turn-indicator');
+  if (!lastState || lastState.over || lastState.phase !== 'playing') { ind.classList.add('hidden'); return; }
+  const active = lastState.seats.find(s => s && s.isTurn);
+  const total = lastState.turnMs ? lastState.turnMs / 1000 : 0;
+  const remain = lastState.turnDeadline ? Math.max(0, (lastState.turnDeadline - Date.now()) / 1000) : null;
+  // hero indicator
+  if (active && active.isYou) {
+    ind.classList.remove('hidden');
+    ind.classList.toggle('low', remain != null && remain <= 6);
+    document.getElementById('turn-text').textContent = remain != null ? 'YOUR TURN · ' + Math.ceil(remain) + 's' : 'YOUR TURN';
+    document.getElementById('turn-bar-f').style.width = (total ? Math.min(100, remain / total * 100) : 100) + '%';
+  } else ind.classList.add('hidden');
+  // active opponent ring
+  const tf = document.querySelector('#tseats .turn-timer-f');
+  if (tf) tf.style.width = (total && remain != null ? Math.min(100, remain / total * 100) : 100) + '%';
+}
+
 // All-in equity bar (win %) shown under a seat during a run-out.
 function equityBar(pct) {
   const col = pct >= 60 ? '#2ecc71' : pct >= 35 ? '#e8cc7a' : '#e74c3c';
@@ -507,16 +562,23 @@ function renderGame(state) {
   document.getElementById('tb-blinds').textContent = 'NLH · ' + state.sb + '/' + state.bb;
   document.getElementById('tb-code').textContent = state.code || roomCode;
   updateBlindLevel(state);
-  if (state.handNum !== prevHandNum) equities = null; // clear all-in equities on a new hand
+  if (!turnTick) turnTick = setInterval(updateTurnClock, 250);
+  const newHand = state.handNum !== prevHandNum;
+  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; } // reset per hand
   if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 
-  // Board
+  // Board — newly dealt cards (flop/turn/river) get a short deal-in animation
   const bc = document.getElementById('cboard');
   bc.innerHTML = '';
+  const grew = state.board.length > prevBoardLen;
   for (let i = 0; i < 5; i++) {
-    if (i < state.board.length) bc.appendChild(cardEl(state.board[i], 'lg'));
-    else { const ph = document.createElement('div'); ph.className='board-slot'; bc.appendChild(ph); }
+    if (i < state.board.length) {
+      const el = cardEl(state.board[i], 'lg');
+      if (grew && i >= prevBoardLen) { el.classList.add('card-deal'); el.style.animationDelay = ((i - prevBoardLen) * 0.09) + 's'; }
+      bc.appendChild(el);
+    } else { const ph = document.createElement('div'); ph.className = 'board-slot'; bc.appendChild(ph); }
   }
+  prevBoardLen = state.board.length;
   document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="cpot-l">POT</span>' + state.pot : '';
   document.getElementById('cstreet').textContent = state.street ? state.street.toUpperCase() : '';
 
@@ -558,11 +620,14 @@ function renderGame(state) {
 
     const actTxt = s.lastAction || '';
     const eq = equities && !s.folded ? equities[s.seatIndex] : null;
+    const showTimer = isTurn && state.turnDeadline;
     seat.innerHTML = '<div class="' + avCls + '">' + initials
       + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
+      + (isTurn ? '<div class="turn-tag">● to act</div>' : '')
       + '<div class="tseat-plate"><div class="tseat-name">' + s.name
       + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
       + '<div class="tseat-chips">' + s.chips + '</div></div>'
+      + (showTimer ? '<div class="turn-timer"><div class="turn-timer-f"></div></div>' : '')
       + (eq != null ? equityBar(eq) : '')
       + '<div class="tseat-cards">' + cardsHtml + '</div>'
       + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
@@ -593,8 +658,12 @@ function renderGame(state) {
 
     // action bar
     const myTurn = me.isTurn && !state.over;
+    const call = Math.max(0, state.curBet - me.bet);
+    // pre-action bar shown while it's NOT your turn (and you're still in the hand)
+    renderPreActions(state, me, myTurn);
     if (myTurn) {
-      const call = Math.max(0, state.curBet - me.bet);
+      // fire a queued pre-action if one is armed
+      if (pendingPre) { const pa = pendingPre; pendingPre = null; firePre(pa, call); document.getElementById('abar').classList.add('off'); return; }
       const canCheck = call === 0;
 
       // Call: enabled only when there's something to call
@@ -688,6 +757,7 @@ function setSize(frac) {
 
 function send(action) {
   if (!socket || !roomCode) return;
+  pendingPre = null;
   const amount = action === 'raise' ? +document.getElementById('rslider').value : 0;
   socket.emit('action', { code: roomCode, action, amount });
   document.getElementById('abar').classList.add('off');
@@ -1025,7 +1095,7 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
 }
-function newSession() { isSpectator = false; document.body.classList.remove('spectating'); showScreen('s-lobby'); }
+function newSession() { isSpectator = false; clearSession(); document.body.classList.remove('spectating'); showScreen('s-lobby'); }
 
 // Auto-join from URL
 window.addEventListener('load', () => {
@@ -1034,5 +1104,14 @@ window.addEventListener('load', () => {
   if (m) {
     document.getElementById('j-code').value = m[1].toUpperCase();
     switchTab('join');
+  }
+  // Try to rejoin a session you were already in (refresh / reconnect to same seat).
+  let sess = null;
+  try { sess = JSON.parse(localStorage.getItem('pt-session') || 'null'); } catch (e) {}
+  if (sess && sess.code && sess.name && (!m || m[1].toUpperCase() === sess.code)) {
+    myName = sess.name; roomCode = sess.code;
+    document.getElementById('p-nameval').textContent = myName;
+    initSocket();
+    socket.emit('reconnect_room', { code: sess.code, name: sess.name });
   }
 });

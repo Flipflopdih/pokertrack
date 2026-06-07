@@ -16,7 +16,7 @@ function mkStat(startChips) {
   };
 }
 
-function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin) {
+function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin, turnSec) {
   const code = makeCode();
   rooms[code] = {
     code, hostId: hostSocketId, sb, bb, startChips,
@@ -26,7 +26,9 @@ function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindU
     deck: [], di: 0, pot: 0, board: [],
     curBet: 0, street: '', queue: [],
     over: true, actionTimer: null, phase: 'waiting',
-    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null
+    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null,
+    turnMs: turnSec === 0 ? 0 : Math.max(8, Math.min(120, turnSec || 30)) * 1000, // per-turn time limit (0 = off)
+    turnDeadline: 0
   };
   return code;
 }
@@ -106,6 +108,7 @@ function buildView(room, socketId) {
     street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
     sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
     level: room.level, nextBlindAt: room.nextBlindAt, blindUpMs: room.blindUpMs,
+    turnMs: room.turnMs, turnDeadline: room.over ? 0 : room.turnDeadline,
     isHost: room.hostId === socketId,
     rig: room.hostId === socketId ? room.seats.map((s, i) => s && s.rigged ? i : -1).filter(i => i >= 0) : null,
     myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
@@ -126,7 +129,7 @@ function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 
 function emitEquities(room) {
   const act = activePlayers(room);
   if (act.length < 2) return;
-  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
+  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 220));
 }
 
 function postBlind(room, seatIdx, amt) {
@@ -204,10 +207,17 @@ function scheduleNext(room) {
   const player = room.seats[seatIdx];
   if (!player) { room.queue.shift(); scheduleNext(room); return; }
 
-  if (!player.connected) {
+  // auto-act on timeout: disconnected players fold fast; connected players get the turn clock
+  const timeoutMs = !player.connected ? 3000 : room.turnMs;
+  if (timeoutMs) {
+    room.turnDeadline = Date.now() + timeoutMs;
     room.actionTimer = setTimeout(() => {
-      applyAction(room, seatIdx, 'fold'); broadcast(room); scheduleNext(room);
-    }, 3000);
+      const call = Math.max(0, room.curBet - player.bet);
+      applyAction(room, seatIdx, call > 0 ? 'fold' : 'check'); // time out → check if free, else fold
+      broadcast(room); scheduleNext(room);
+    }, timeoutMs);
+  } else {
+    room.turnDeadline = 0;
   }
   broadcast(room);
 }
@@ -280,7 +290,7 @@ function trackGTO(room, player, action) {
     ctx.facingRaise = room.curBet > room.bb;
   } else {
     const opps = Math.max(1, activePlayers(room).length - 1);
-    const iters = opps <= 1 ? 240 : opps === 2 ? 180 : 140;
+    const iters = opps <= 1 ? 120 : opps === 2 ? 90 : 60;
     ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
   }
 
@@ -407,7 +417,7 @@ function endHand(room) {
     const opps = flopSeers.filter(o => o !== p);
     let perHand, weight, realizedChips = 0;
     if (p.sawFlop && opps.length && room.board.length >= 3) {
-      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
+      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 120) ?? 0;
       realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
       perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
       weight = room.bb ? room.pot / room.bb : 1;

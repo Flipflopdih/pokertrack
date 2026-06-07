@@ -21,13 +21,14 @@ io.on('connection', socket => {
   let myRoom = null;
   let mySeat = null;
 
-  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin }) => {
+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec }) => {
     name = (name || '').toString().trim().slice(0, 14) || 'Host';
     startChips = Math.max(1, startChips || 1000);
     sb = Math.max(1, sb || 10);
     bb = Math.max(sb * 2, bb || 20); // big blind at least 2x small blind
     blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
-    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin);
+    turnSec = turnSec === 0 ? 0 : Math.max(8, Math.min(120, +turnSec || 30));
+    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin, turnSec);
     myRoom = code;
     socket.join(code);
     const room = getRoom(code);
@@ -207,25 +208,34 @@ io.on('connection', socket => {
     if (p) {
       p.connected = false;
       broadcast(room);
-      if (room.queue[0] === mySeat) {
+      if (!room.over && room.queue[0] === mySeat) {
+        if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
         room.actionTimer = setTimeout(() => {
-          applyAction(room, mySeat, 'fold'); broadcast(room); scheduleNext(room);
-        }, 10000);
+          const call = Math.max(0, room.curBet - p.bet);
+          applyAction(room, mySeat, call > 0 ? 'fold' : 'check'); broadcast(room); scheduleNext(room);
+        }, 12000); // grace period to rejoin before auto-acting
       }
     }
   });
 
+  // Rejoin your existing seat after a refresh/disconnect.
   socket.on('reconnect_room', ({ code, name }) => {
     const room = getRoom(code);
-    if (!room) return;
+    if (!room) { socket.emit('reconnect_failed'); return; }
     const p = filledSeats(room).find(p => p.name === name);
-    if (p) {
-      p.socketId = socket.id;
-      p.connected = true;
-      mySeat = p.seatIndex;
-      myRoom = code;
-      socket.join(code);
-      socket.emit('state', buildView(room, socket.id));
+    if (!p) { socket.emit('reconnect_failed'); return; }
+    p.socketId = socket.id;
+    p.connected = true;
+    mySeat = p.seatIndex;
+    myRoom = room.code;
+    socket.join(room.code);
+    socket.emit('joined_room', { code: room.code, seatIndex: p.seatIndex });
+    // if we came back on our own turn, restart the action clock for us
+    if (!room.over && room.queue[0] === p.seatIndex) {
+      if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
+      scheduleNext(room);
+    } else {
+      broadcast(room);
     }
   });
 });

@@ -58,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
 #table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-#table{position:relative;width:100%;max-width:1180px;min-height:600px;margin:0 auto;
+#table{position:relative;width:100%;max-width:1340px;min-height:680px;margin:0 auto;
   background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -93,7 +93,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 /* COMMUNITY */
 #community{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:11px;z-index:3}
 #cboard{display:flex;gap:9px}
-.board-slot{width:64px;height:90px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
+.board-slot{width:76px;height:106px;border-radius:9px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
 #cpot{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:17px;font-weight:600;color:#f7eed6;background:rgba(8,16,11,.8);border:1.5px solid rgba(201,168,76,.42);padding:7px 18px;border-radius:22px;box-shadow:0 6px 16px rgba(0,0,0,.55)}
 .cpot-l{font-size:9px;letter-spacing:.14em;color:rgba(201,168,76,.75);font-weight:700}
 #cpot:empty{display:none}
@@ -122,17 +122,17 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 /* CARDS — SVG faces (four-colour luxury deck) */
 .card{position:relative;border-radius:7px;overflow:hidden;box-shadow:0 3px 11px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.06);user-select:none;background:#f6f0e2}
 .card svg{display:block;width:100%;height:100%}
-.xl{width:80px;height:112px;border-radius:9px}
-.lg{width:64px;height:90px;border-radius:8px}
-.sm{width:40px;height:56px}
-.xs{width:28px;height:39px;border-radius:4px}
+.xl{width:94px;height:132px;border-radius:10px}
+.lg{width:76px;height:106px;border-radius:9px}
+.sm{width:44px;height:62px}
+.xs{width:32px;height:45px;border-radius:5px}
 .ghost-card{opacity:.32;filter:grayscale(.45)}
 
 /* ACTION BAR — bottom-centre, large clear buttons (PokerNow style) */
 #abar{position:fixed;bottom:20px;left:50%;right:auto;transform:translateX(-50%);z-index:90;transition:opacity .2s}
 #abar.off{opacity:.3;pointer-events:none;filter:grayscale(.4)}
-#abar-main{display:flex;gap:14px}
-.abtn{position:relative;height:66px;min-width:158px;padding:0 22px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:19px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55)}
+#abar-main{display:flex;gap:9px}
+.abtn{position:relative;height:48px;min-width:108px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.5)}
 .abtn:hover{transform:translateY(-2px)}
 .abtn:active{transform:translateY(0)}
 .abtn .kbd{position:absolute;top:6px;right:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace}
@@ -420,3 +420,32 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 
 /* host luck-mode toggle */
 .rig-btn.rig-on{background:linear-gradient(180deg,#e8cc7a,#c9a84c);color:#1a1409;border-color:#f0d896;font-weight:600}
+
+/* ── card deal-in animation (flop / turn / river) ── */
+@keyframes dealIn{0%{opacity:0;transform:translateY(-18px) rotateY(55deg) scale(.88)}60%{opacity:1}100%{opacity:1;transform:none}}
+.card-deal{animation:dealIn .34s cubic-bezier(.2,.7,.3,1) both}
+
+/* ── whose turn: tag + countdown bar on seats ── */
+.turn-tag{font-size:9px;font-weight:700;letter-spacing:.04em;color:#1a1409;background:var(--gold-l);padding:1px 7px;border-radius:8px;margin-top:-2px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.turn-timer{width:84px;height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:1px}
+.turn-timer-f{height:100%;width:100%;background:var(--gold);border-radius:3px;transition:width .25s linear}
+
+/* ── your-turn indicator (above action bar) ── */
+#turn-indicator{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 16px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
+#turn-indicator.hidden{display:none}
+#turn-text{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--gold-l)}
+#turn-bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:5px}
+#turn-bar-f{height:100%;width:100%;background:linear-gradient(90deg,var(--gold),var(--gold-l));border-radius:3px;transition:width .25s linear}
+#turn-indicator.low{border-color:#e74c3c;animation:turnpulse .7s infinite}
+#turn-indicator.low #turn-text{color:#ff6f62}
+#turn-indicator.low #turn-bar-f{background:#e74c3c}
+@keyframes turnpulse{0%,100%{box-shadow:0 6px 18px rgba(231,76,60,.3)}50%{box-shadow:0 6px 26px rgba(231,76,60,.7)}}
+
+/* ── pre-action bar ── */
+#preaction{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:89;display:flex;align-items:center;gap:8px;background:rgba(8,16,11,.9);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 12px;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+#preaction.hidden{display:none}
+.pre-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4)}
+.pre-btn{padding:9px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s}
+.pre-btn:hover{background:rgba(255,255,255,.1)}
+.pre-btn.pre-fold{border-color:rgba(231,76,60,.35);color:#ff6f62}
+.pre-btn.armed{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:700}

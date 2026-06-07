@@ -61,6 +61,9 @@
           <input id="c-blindup" type="number" min="0" max="120" step="1" value="0" placeholder="0 = off">
         </div>
       </div>
+      <div class="lf"><label>Turn time limit (sec, 0 = off)</label>
+        <input id="c-turn" type="number" min="0" max="120" step="1" value="30">
+      </div>
       <button class="btn-gold" onclick="createRoom()">Create table →</button>
       <div class="link-box" id="link-box">
         <div class="lb-label">Share with friends</div>
@@ -169,6 +172,15 @@
         <button class="abtn raise solid" id="btn-raise-confirm" onclick="confirmRaise()"><span class="kbd">↵</span><span class="albl">Raise</span></button>
       </div>
     </div>
+  </div>
+  <!-- your-turn indicator + countdown -->
+  <div id="turn-indicator" class="hidden"><span id="turn-text">YOUR TURN</span><div id="turn-bar"><div id="turn-bar-f"></div></div></div>
+  <!-- pre-action bar (queue an action for when it's your turn) -->
+  <div id="preaction" class="hidden">
+    <span class="pre-lbl">Pre-action</span>
+    <button class="pre-btn" id="pre-checkfold" onclick="togglePre('checkfold')">Check/Fold</button>
+    <button class="pre-btn" id="pre-callany" onclick="togglePre('callany')">Call any</button>
+    <button class="pre-btn pre-fold" id="pre-fold" onclick="togglePre('fold')">Fold</button>
   </div>
 </div>
 

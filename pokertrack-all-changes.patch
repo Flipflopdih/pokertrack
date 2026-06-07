@@ -1102,10 +1102,10 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..ae35718
+index 0000000..a36f2fd
 --- /dev/null
 +++ b/public/css/styles.css
-@@ -0,0 +1,422 @@
+@@ -0,0 +1,451 @@
 +*{box-sizing:border-box;margin:0;padding:0}
 +:root{--felt:#1b3d2a;--felt-mid:#1e4830;--felt-dark:#0f2017;--rail:#5c3d1e;--rail-dark:#3a2510;--gold:#c9a84c;--gold-l:#e8cc7a}
 +body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-height:100vh;overflow-x:hidden}
@@ -1166,7 +1166,7 @@ index 0000000..ae35718
 +.btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 +
 +#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-+#table{position:relative;width:100%;max-width:1180px;min-height:600px;margin:0 auto;
++#table{position:relative;width:100%;max-width:1340px;min-height:680px;margin:0 auto;
 +  background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
 +  border-radius:300px/180px;border:14px solid #5c3d1e;
 +  box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -1201,7 +1201,7 @@ index 0000000..ae35718
 +/* COMMUNITY */
 +#community{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:11px;z-index:3}
 +#cboard{display:flex;gap:9px}
-+.board-slot{width:64px;height:90px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
++.board-slot{width:76px;height:106px;border-radius:9px;border:1.5px dashed rgba(255,255,255,.09);background:rgba(255,255,255,.02)}
 +#cpot{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:17px;font-weight:600;color:#f7eed6;background:rgba(8,16,11,.8);border:1.5px solid rgba(201,168,76,.42);padding:7px 18px;border-radius:22px;box-shadow:0 6px 16px rgba(0,0,0,.55)}
 +.cpot-l{font-size:9px;letter-spacing:.14em;color:rgba(201,168,76,.75);font-weight:700}
 +#cpot:empty{display:none}
@@ -1230,17 +1230,17 @@ index 0000000..ae35718
 +/* CARDS — SVG faces (four-colour luxury deck) */
 +.card{position:relative;border-radius:7px;overflow:hidden;box-shadow:0 3px 11px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.06);user-select:none;background:#f6f0e2}
 +.card svg{display:block;width:100%;height:100%}
-+.xl{width:80px;height:112px;border-radius:9px}
-+.lg{width:64px;height:90px;border-radius:8px}
-+.sm{width:40px;height:56px}
-+.xs{width:28px;height:39px;border-radius:4px}
++.xl{width:94px;height:132px;border-radius:10px}
++.lg{width:76px;height:106px;border-radius:9px}
++.sm{width:44px;height:62px}
++.xs{width:32px;height:45px;border-radius:5px}
 +.ghost-card{opacity:.32;filter:grayscale(.45)}
 +
 +/* ACTION BAR — bottom-centre, large clear buttons (PokerNow style) */
 +#abar{position:fixed;bottom:20px;left:50%;right:auto;transform:translateX(-50%);z-index:90;transition:opacity .2s}
 +#abar.off{opacity:.3;pointer-events:none;filter:grayscale(.4)}
-+#abar-main{display:flex;gap:14px}
-+.abtn{position:relative;height:66px;min-width:158px;padding:0 22px;border-radius:14px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:19px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55)}
++#abar-main{display:flex;gap:9px}
++.abtn{position:relative;height:48px;min-width:108px;padding:0 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(20,33,24,.97),rgba(9,18,12,.98));color:#f4efe3;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:.01em;cursor:pointer;transition:transform .12s,background .12s,border-color .12s;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.5)}
 +.abtn:hover{transform:translateY(-2px)}
 +.abtn:active{transform:translateY(0)}
 +.abtn .kbd{position:absolute;top:6px;right:9px;font-size:10px;font-weight:600;color:rgba(255,255,255,.32);font-family:'DM Mono',monospace}
@@ -1528,8 +1528,37 @@ index 0000000..ae35718
 +
 +/* host luck-mode toggle */
 +.rig-btn.rig-on{background:linear-gradient(180deg,#e8cc7a,#c9a84c);color:#1a1409;border-color:#f0d896;font-weight:600}
++
++/* ── card deal-in animation (flop / turn / river) ── */
++@keyframes dealIn{0%{opacity:0;transform:translateY(-18px) rotateY(55deg) scale(.88)}60%{opacity:1}100%{opacity:1;transform:none}}
++.card-deal{animation:dealIn .34s cubic-bezier(.2,.7,.3,1) both}
++
++/* ── whose turn: tag + countdown bar on seats ── */
++.turn-tag{font-size:9px;font-weight:700;letter-spacing:.04em;color:#1a1409;background:var(--gold-l);padding:1px 7px;border-radius:8px;margin-top:-2px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
++.turn-timer{width:84px;height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:1px}
++.turn-timer-f{height:100%;width:100%;background:var(--gold);border-radius:3px;transition:width .25s linear}
++
++/* ── your-turn indicator (above action bar) ── */
++#turn-indicator{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 16px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
++#turn-indicator.hidden{display:none}
++#turn-text{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--gold-l)}
++#turn-bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:5px}
++#turn-bar-f{height:100%;width:100%;background:linear-gradient(90deg,var(--gold),var(--gold-l));border-radius:3px;transition:width .25s linear}
++#turn-indicator.low{border-color:#e74c3c;animation:turnpulse .7s infinite}
++#turn-indicator.low #turn-text{color:#ff6f62}
++#turn-indicator.low #turn-bar-f{background:#e74c3c}
++@keyframes turnpulse{0%,100%{box-shadow:0 6px 18px rgba(231,76,60,.3)}50%{box-shadow:0 6px 26px rgba(231,76,60,.7)}}
++
++/* ── pre-action bar ── */
++#preaction{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:89;display:flex;align-items:center;gap:8px;background:rgba(8,16,11,.9);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 12px;box-shadow:0 6px 16px rgba(0,0,0,.5)}
++#preaction.hidden{display:none}
++.pre-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4)}
++.pre-btn{padding:9px 14px;border-radius:9px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#f0ede4;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s}
++.pre-btn:hover{background:rgba(255,255,255,.1)}
++.pre-btn.pre-fold{border-color:rgba(231,76,60,.35);color:#ff6f62}
++.pre-btn.armed{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:700}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..f7498e5 100644
+index 0edbb13..db273ba 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1759,7 +1788,7 @@ index 0edbb13..f7498e5 100644
  <div id="toast"></div>
  
  <!-- ── LOBBY ── -->
-@@ -223,18 +37,29 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -223,18 +37,32 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
      </div>
      <div id="tab-create">
        <div class="lf"><label>Your name</label><input id="c-name" value="" placeholder="Enter your name" maxlength="14"></div>
@@ -1794,10 +1823,13 @@ index 0edbb13..f7498e5 100644
 +        <div class="lf"><label>Blinds up every (min)</label>
 +          <input id="c-blindup" type="number" min="0" max="120" step="1" value="0" placeholder="0 = off">
 +        </div>
++      </div>
++      <div class="lf"><label>Turn time limit (sec, 0 = off)</label>
++        <input id="c-turn" type="number" min="0" max="120" step="1" value="30">
        </div>
        <button class="btn-gold" onclick="createRoom()">Create table →</button>
        <div class="link-box" id="link-box">
-@@ -247,6 +72,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -247,6 +75,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        <div class="lf"><label>Your name</label><input id="j-name" value="" placeholder="Enter your name" maxlength="14"></div>
        <div class="lf"><label>Room code</label><input id="j-code" placeholder="e.g. ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.1em"></div>
        <button class="btn-gold" onclick="joinRoom()">Join table →</button>
@@ -1805,7 +1837,7 @@ index 0edbb13..f7498e5 100644
      </div>
    </div>
  </div>
-@@ -255,7 +81,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -255,7 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
  <div id="s-seats" class="screen">
    <div id="seat-box">
      <h2>Choose your seat</h2>
@@ -1814,7 +1846,7 @@ index 0edbb13..f7498e5 100644
      <div class="seat-grid" id="seat-grid"></div>
      <div class="waiting-players" id="waiting-msg">Waiting for more players… share the link to invite friends</div>
      <button class="btn-gold" id="btn-start-game" onclick="startGame()">Start game →</button>
-@@ -272,17 +98,32 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -272,17 +101,32 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    <div id="topbar">
      <div class="tb-left">
        <span class="tb-logo">♠ PokerTrack</span>
@@ -1847,7 +1879,7 @@ index 0edbb13..f7498e5 100644
        <div id="tseats"></div>
        <div id="community">
          <div id="cstreet"></div>
-@@ -292,52 +133,100 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -292,52 +136,109 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        <div id="p-area">
          <div id="p-hole"></div>
          <div id="p-info">
@@ -1896,6 +1928,15 @@ index 0edbb13..f7498e5 100644
 +      </div>
      </div>
 -    <button class="abtn allin" onclick="send('allin')">All-in</button>
++  </div>
++  <!-- your-turn indicator + countdown -->
++  <div id="turn-indicator" class="hidden"><span id="turn-text">YOUR TURN</span><div id="turn-bar"><div id="turn-bar-f"></div></div></div>
++  <!-- pre-action bar (queue an action for when it's your turn) -->
++  <div id="preaction" class="hidden">
++    <span class="pre-lbl">Pre-action</span>
++    <button class="pre-btn" id="pre-checkfold" onclick="togglePre('checkfold')">Check/Fold</button>
++    <button class="pre-btn" id="pre-callany" onclick="togglePre('callany')">Call any</button>
++    <button class="pre-btn pre-fold" id="pre-fold" onclick="togglePre('fold')">Fold</button>
    </div>
  </div>
  
@@ -1972,7 +2013,7 @@ index 0edbb13..f7498e5 100644
  <!-- ── RESULTS ── -->
  <div id="s-results" class="screen">
    <div id="res-inner">
-@@ -351,493 +240,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -351,493 +252,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    </div>
  </div>
  
@@ -2469,10 +2510,10 @@ index 0edbb13..f7498e5 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..c813b5f
+index 0000000..f6d4703
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,1038 @@
+@@ -0,0 +1,1117 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2520,9 +2561,12 @@ index 0000000..c813b5f
 +let myTurnWas = false;
 +let prevHandNum = 0, prevActions = {};
 +let equities = null, blindTick = null, isSpectator = false;
++let pendingPre = null, prevBoardLen = 0, turnTick = null;
++function saveSession() { try { localStorage.setItem('pt-session', JSON.stringify({ code: roomCode, name: myName })); } catch (e) {} }
++function clearSession() { try { localStorage.removeItem('pt-session'); } catch (e) {} }
 +
 +// ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
-+const SOUND_FILES = { deal:'/sounds/card.mp3', check:'/sounds/takecard2.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
++const SOUND_FILES = { deal:'/sounds/card.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
 +const SOUND_CAP = {};
 +const SOUND_GAIN = { check: 0.5, deal: 0.7, call: 0.85, raise: 0.9, fold: 0.75, allin: 1.0 };
 +const sfx = (() => {
@@ -2541,12 +2585,24 @@ index 0000000..c813b5f
 +    return ctx;
 +  }
 +  function tone(f, t0, dur, gain) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02); }
++  // a dry knuckle-knock on the table (two quick thumps) — the real "check" sound
++  function knock(t0) {
++    for (let k = 0; k < 2; k++) {
++      const t = t0 + k * 0.085;
++      const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
++      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
++      f.type = 'lowpass'; f.frequency.value = 400;
++      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
++      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.09);
++    }
++  }
 +  return {
 +    get muted() { return muted; },
 +    toggle() { muted = !muted; localStorage.setItem('pt-muted', muted ? '1' : '0'); if (!muted) ensure(); return muted; },
 +    init() { ensure(); },
 +    play(name) {
 +      if (muted || !ensure()) return;
++      if (name === 'check') { knock(ctx.currentTime); return; } // dedicated check knock
 +      if (name === 'win') { const t = ctx.currentTime;[523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.25, 0.13)); return; }
 +      const buf = buffers[name];
 +      if (!buf) { if (buffers[name] === undefined) preload(); return; }
@@ -2584,6 +2640,7 @@ index 0000000..c813b5f
 +
 +  socket.on('room_created', ({ code, url }) => {
 +    roomCode = code;
++    saveSession();
 +    inviteUrl = window.location.origin + url;
 +    document.getElementById('lb-url').textContent = inviteUrl;
 +    document.getElementById('link-box').classList.add('show');
@@ -2596,12 +2653,15 @@ index 0000000..c813b5f
 +  socket.on('joined_room', ({ code, seatIndex }) => {
 +    roomCode = code;
 +    mySeatIndex = seatIndex;
++    saveSession();
 +    inviteUrl = window.location.origin + '/room/' + code;
 +    document.getElementById('seat-invite-url').textContent = inviteUrl;
 +    document.getElementById('seat-code').textContent = code;
 +    document.getElementById('tb-code').textContent = code;
-+    showScreen('s-seats');
++    if (document.querySelector('.screen.active').id !== 's-game') showScreen('s-seats');
 +  });
++
++  socket.on('reconnect_failed', () => { clearSession(); });
 +
 +  socket.on('state', state => {
 +    lastState = state;
@@ -2664,6 +2724,7 @@ index 0000000..c813b5f
 +  });
 +
 +  socket.on('session_ended', ({ you, leaderboard, handNum }) => {
++    clearSession();
 +    buildResults(you, leaderboard, handNum);
 +    showScreen('s-results');
 +  });
@@ -2756,8 +2817,9 @@ index 0000000..c813b5f
 +  if (chips < bb) { toast('Starting chips should be at least one big blind'); return; }
 +  const maxSeats = +document.getElementById('c-maxseats').value || 8;
 +  const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
++  const turnSec = Math.max(0, +document.getElementById('c-turn').value || 0);
 +  initSocket();
-+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin });
++  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec });
 +  document.getElementById('p-nameval').textContent = myName;
 +}
 +
@@ -2947,6 +3009,40 @@ index 0000000..c813b5f
 +    : t.startsWith('All') ? 'tact-allin' : '';
 +}
 +
++// ── PRE-ACTIONS (queue a move for when it's your turn) ──
++function renderPreActions(state, me, myTurn) {
++  const bar = document.getElementById('preaction');
++  const show = !myTurn && me && !me.folded && !state.over && state.phase === 'playing' && me.chips > 0 && !me.sittingOut;
++  bar.classList.toggle('hidden', !show);
++  if (!show) { if (pendingPre) pendingPre = null; return; }
++  ['checkfold', 'callany', 'fold'].forEach(k => document.getElementById('pre-' + k).classList.toggle('armed', pendingPre === k));
++}
++function togglePre(k) { pendingPre = pendingPre === k ? null : k; if (lastState) renderPreActions(lastState, lastState.seats.find(s => s && s.isYou), false); }
++function firePre(pa, call) {
++  if (pa === 'fold') send('fold');
++  else if (pa === 'checkfold') send(call > 0 ? 'fold' : 'check');
++  else if (pa === 'callany') send(call > 0 ? 'call' : 'check');
++}
++
++// ── TURN CLOCK ──
++function updateTurnClock() {
++  const ind = document.getElementById('turn-indicator');
++  if (!lastState || lastState.over || lastState.phase !== 'playing') { ind.classList.add('hidden'); return; }
++  const active = lastState.seats.find(s => s && s.isTurn);
++  const total = lastState.turnMs ? lastState.turnMs / 1000 : 0;
++  const remain = lastState.turnDeadline ? Math.max(0, (lastState.turnDeadline - Date.now()) / 1000) : null;
++  // hero indicator
++  if (active && active.isYou) {
++    ind.classList.remove('hidden');
++    ind.classList.toggle('low', remain != null && remain <= 6);
++    document.getElementById('turn-text').textContent = remain != null ? 'YOUR TURN · ' + Math.ceil(remain) + 's' : 'YOUR TURN';
++    document.getElementById('turn-bar-f').style.width = (total ? Math.min(100, remain / total * 100) : 100) + '%';
++  } else ind.classList.add('hidden');
++  // active opponent ring
++  const tf = document.querySelector('#tseats .turn-timer-f');
++  if (tf) tf.style.width = (total && remain != null ? Math.min(100, remain / total * 100) : 100) + '%';
++}
++
 +// All-in equity bar (win %) shown under a seat during a run-out.
 +function equityBar(pct) {
 +  const col = pct >= 60 ? '#2ecc71' : pct >= 35 ? '#e8cc7a' : '#e74c3c';
@@ -2982,16 +3078,23 @@ index 0000000..c813b5f
 +  document.getElementById('tb-blinds').textContent = 'NLH · ' + state.sb + '/' + state.bb;
 +  document.getElementById('tb-code').textContent = state.code || roomCode;
 +  updateBlindLevel(state);
-+  if (state.handNum !== prevHandNum) equities = null; // clear all-in equities on a new hand
++  if (!turnTick) turnTick = setInterval(updateTurnClock, 250);
++  const newHand = state.handNum !== prevHandNum;
++  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; } // reset per hand
 +  if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 +
-+  // Board
++  // Board — newly dealt cards (flop/turn/river) get a short deal-in animation
 +  const bc = document.getElementById('cboard');
 +  bc.innerHTML = '';
++  const grew = state.board.length > prevBoardLen;
 +  for (let i = 0; i < 5; i++) {
-+    if (i < state.board.length) bc.appendChild(cardEl(state.board[i], 'lg'));
-+    else { const ph = document.createElement('div'); ph.className='board-slot'; bc.appendChild(ph); }
++    if (i < state.board.length) {
++      const el = cardEl(state.board[i], 'lg');
++      if (grew && i >= prevBoardLen) { el.classList.add('card-deal'); el.style.animationDelay = ((i - prevBoardLen) * 0.09) + 's'; }
++      bc.appendChild(el);
++    } else { const ph = document.createElement('div'); ph.className = 'board-slot'; bc.appendChild(ph); }
 +  }
++  prevBoardLen = state.board.length;
 +  document.getElementById('cpot').innerHTML = state.pot > 0 ? '<span class="cpot-l">POT</span>' + state.pot : '';
 +  document.getElementById('cstreet').textContent = state.street ? state.street.toUpperCase() : '';
 +
@@ -3033,11 +3136,14 @@ index 0000000..c813b5f
 +
 +    const actTxt = s.lastAction || '';
 +    const eq = equities && !s.folded ? equities[s.seatIndex] : null;
++    const showTimer = isTurn && state.turnDeadline;
 +    seat.innerHTML = '<div class="' + avCls + '">' + initials
 +      + (s.isDealer ? '<div class="dchip">D</div>' : '') + '</div>'
++      + (isTurn ? '<div class="turn-tag">● to act</div>' : '')
 +      + '<div class="tseat-plate"><div class="tseat-name">' + s.name
 +      + (s.wins > 0 ? '<span class="tseat-wins">🏆' + s.wins + '</span>' : '') + '</div>'
 +      + '<div class="tseat-chips">' + s.chips + '</div></div>'
++      + (showTimer ? '<div class="turn-timer"><div class="turn-timer-f"></div></div>' : '')
 +      + (eq != null ? equityBar(eq) : '')
 +      + '<div class="tseat-cards">' + cardsHtml + '</div>'
 +      + '<div class="tseat-act ' + actClass(actTxt) + '">' + actTxt + '</div>';
@@ -3068,8 +3174,12 @@ index 0000000..c813b5f
 +
 +    // action bar
 +    const myTurn = me.isTurn && !state.over;
++    const call = Math.max(0, state.curBet - me.bet);
++    // pre-action bar shown while it's NOT your turn (and you're still in the hand)
++    renderPreActions(state, me, myTurn);
 +    if (myTurn) {
-+      const call = Math.max(0, state.curBet - me.bet);
++      // fire a queued pre-action if one is armed
++      if (pendingPre) { const pa = pendingPre; pendingPre = null; firePre(pa, call); document.getElementById('abar').classList.add('off'); return; }
 +      const canCheck = call === 0;
 +
 +      // Call: enabled only when there's something to call
@@ -3163,6 +3273,7 @@ index 0000000..c813b5f
 +
 +function send(action) {
 +  if (!socket || !roomCode) return;
++  pendingPre = null;
 +  const amount = action === 'raise' ? +document.getElementById('rslider').value : 0;
 +  socket.emit('action', { code: roomCode, action, amount });
 +  document.getElementById('abar').classList.add('off');
@@ -3500,7 +3611,7 @@ index 0000000..c813b5f
 +  el.textContent = msg; el.classList.add('show');
 +  setTimeout(() => el.classList.remove('show'), 2500);
 +}
-+function newSession() { isSpectator = false; document.body.classList.remove('spectating'); showScreen('s-lobby'); }
++function newSession() { isSpectator = false; clearSession(); document.body.classList.remove('spectating'); showScreen('s-lobby'); }
 +
 +// Auto-join from URL
 +window.addEventListener('load', () => {
@@ -3509,6 +3620,15 @@ index 0000000..c813b5f
 +  if (m) {
 +    document.getElementById('j-code').value = m[1].toUpperCase();
 +    switchTab('join');
++  }
++  // Try to rejoin a session you were already in (refresh / reconnect to same seat).
++  let sess = null;
++  try { sess = JSON.parse(localStorage.getItem('pt-session') || 'null'); } catch (e) {}
++  if (sess && sess.code && sess.name && (!m || m[1].toUpperCase() === sess.code)) {
++    myName = sess.name; roomCode = sess.code;
++    document.getElementById('p-nameval').textContent = myName;
++    initSocket();
++    socket.emit('reconnect_room', { code: sess.code, name: sess.name });
 +  }
 +});
 diff --git a/public/sounds/allin.mp3 b/public/sounds/allin.mp3
@@ -3536,10 +3656,10 @@ new file mode 100644
 index 0000000..eb6788c
 Binary files /dev/null and b/public/sounds/takecard2.mp3 differ
 diff --git a/server.js b/server.js
-index acd381e..ff3814d 100644
+index acd381e..619a18b 100644
 --- a/server.js
 +++ b/server.js
-@@ -3,527 +3,46 @@ const http = require('http');
+@@ -3,527 +3,47 @@ const http = require('http');
  const { Server } = require('socket.io');
  const path = require('path');
  
@@ -4057,13 +4177,14 @@ index acd381e..ff3814d 100644
 -    // validate blinds
 -    if (bb < sb*2) bb = sb*2;
 -    const code = createRoom(name, socket.id, startChips||1000, sb||10, bb||20);
-+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin }) => {
++  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec }) => {
 +    name = (name || '').toString().trim().slice(0, 14) || 'Host';
 +    startChips = Math.max(1, startChips || 1000);
 +    sb = Math.max(1, sb || 10);
 +    bb = Math.max(sb * 2, bb || 20); // big blind at least 2x small blind
 +    blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
-+    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin);
++    turnSec = turnSec === 0 ? 0 : Math.max(8, Math.min(120, +turnSec || 30));
++    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin, turnSec);
      myRoom = code;
      socket.join(code);
      const room = getRoom(code);
@@ -4087,7 +4208,7 @@ index acd381e..ff3814d 100644
      if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
      myRoom = room.code;
      mySeat = emptyIdx;
-@@ -535,35 +54,115 @@ io.on('connection', socket => {
+@@ -535,35 +55,115 @@ io.on('connection', socket => {
  
    socket.on('take_seat', ({ code, seatIndex, name }) => {
      const room = getRoom(code);
@@ -4208,7 +4329,7 @@ index acd381e..ff3814d 100644
      room.sb = sb;
      room.bb = bb;
      if (startChips) room.startChips = startChips;
-@@ -583,12 +182,21 @@ io.on('connection', socket => {
+@@ -583,12 +183,21 @@ io.on('connection', socket => {
      if (!room) return;
      room.over = true;
      if (room.actionTimer) clearTimeout(room.actionTimer);
@@ -4236,31 +4357,57 @@ index acd381e..ff3814d 100644
    });
  
    socket.on('disconnect', () => {
-@@ -599,21 +207,18 @@ io.on('connection', socket => {
+@@ -599,28 +208,34 @@ io.on('connection', socket => {
      if (p) {
        p.connected = false;
        broadcast(room);
 -      // If it's their turn, auto-fold after 10s
-       if (room.queue[0] === mySeat) {
+-      if (room.queue[0] === mySeat) {
++      if (!room.over && room.queue[0] === mySeat) {
++        if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
          room.actionTimer = setTimeout(() => {
 -          applyAction(room, mySeat, 'fold');
 -          broadcast(room);
 -          scheduleNext(room);
-+          applyAction(room, mySeat, 'fold'); broadcast(room); scheduleNext(room);
-         }, 10000);
+-        }, 10000);
++          const call = Math.max(0, room.curBet - p.bet);
++          applyAction(room, mySeat, call > 0 ? 'fold' : 'check'); broadcast(room); scheduleNext(room);
++        }, 12000); // grace period to rejoin before auto-acting
        }
      }
 -  });                                          
 +  });
  
++  // Rejoin your existing seat after a refresh/disconnect.
    socket.on('reconnect_room', ({ code, name }) => {
      const room = getRoom(code);
-     if (!room) return;
+-    if (!room) return;
 -    const p = filledSeats(room).find(p=>p.name===name);
+-    if (p) {
+-      p.socketId = socket.id;
+-      p.connected = true;
+-      mySeat = p.seatIndex;
+-      myRoom = code;
+-      socket.join(code);
+-      socket.emit('state', buildView(room, socket.id));
++    if (!room) { socket.emit('reconnect_failed'); return; }
 +    const p = filledSeats(room).find(p => p.name === name);
-     if (p) {
-       p.socketId = socket.id;
-       p.connected = true;
++    if (!p) { socket.emit('reconnect_failed'); return; }
++    p.socketId = socket.id;
++    p.connected = true;
++    mySeat = p.seatIndex;
++    myRoom = room.code;
++    socket.join(room.code);
++    socket.emit('joined_room', { code: room.code, seatIndex: p.seatIndex });
++    // if we came back on our own turn, restart the action clock for us
++    if (!room.over && room.queue[0] === p.seatIndex) {
++      if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
++      scheduleNext(room);
++    } else {
++      broadcast(room);
+     }
+   });
+ });
 diff --git a/src/cards.js b/src/cards.js
 new file mode 100644
 index 0000000..2e073b7
@@ -4350,10 +4497,10 @@ index 0000000..2e073b7
 +module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..807a60b
+index 0000000..7a2407a
 --- /dev/null
 +++ b/src/engine.js
-@@ -0,0 +1,462 @@
+@@ -0,0 +1,472 @@
 +// ── Game engine: rooms, dealing, betting, showdown, side pots ──
 +const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
 +const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities } = require('./gto');
@@ -4372,7 +4519,7 @@ index 0000000..807a60b
 +  };
 +}
 +
-+function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin) {
++function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindUpMin, turnSec) {
 +  const code = makeCode();
 +  rooms[code] = {
 +    code, hostId: hostSocketId, sb, bb, startChips,
@@ -4382,7 +4529,9 @@ index 0000000..807a60b
 +    deck: [], di: 0, pot: 0, board: [],
 +    curBet: 0, street: '', queue: [],
 +    over: true, actionTimer: null, phase: 'waiting',
-+    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null
++    blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null,
++    turnMs: turnSec === 0 ? 0 : Math.max(8, Math.min(120, turnSec || 30)) * 1000, // per-turn time limit (0 = off)
++    turnDeadline: 0
 +  };
 +  return code;
 +}
@@ -4462,6 +4611,7 @@ index 0000000..807a60b
 +    street: room.street, curBet: room.curBet, over: room.over, phase: room.phase,
 +    sb: room.sb, bb: room.bb, maxSeats: room.maxSeats, startChips: room.startChips,
 +    level: room.level, nextBlindAt: room.nextBlindAt, blindUpMs: room.blindUpMs,
++    turnMs: room.turnMs, turnDeadline: room.over ? 0 : room.turnDeadline,
 +    isHost: room.hostId === socketId,
 +    rig: room.hostId === socketId ? room.seats.map((s, i) => s && s.rigged ? i : -1).filter(i => i >= 0) : null,
 +    myHand: me && room.phase === 'playing' ? madeHandLabel(me.cards, room.board) : '',
@@ -4482,7 +4632,7 @@ index 0000000..807a60b
 +function emitEquities(room) {
 +  const act = activePlayers(room);
 +  if (act.length < 2) return;
-+  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
++  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 220));
 +}
 +
 +function postBlind(room, seatIdx, amt) {
@@ -4560,10 +4710,17 @@ index 0000000..807a60b
 +  const player = room.seats[seatIdx];
 +  if (!player) { room.queue.shift(); scheduleNext(room); return; }
 +
-+  if (!player.connected) {
++  // auto-act on timeout: disconnected players fold fast; connected players get the turn clock
++  const timeoutMs = !player.connected ? 3000 : room.turnMs;
++  if (timeoutMs) {
++    room.turnDeadline = Date.now() + timeoutMs;
 +    room.actionTimer = setTimeout(() => {
-+      applyAction(room, seatIdx, 'fold'); broadcast(room); scheduleNext(room);
-+    }, 3000);
++      const call = Math.max(0, room.curBet - player.bet);
++      applyAction(room, seatIdx, call > 0 ? 'fold' : 'check'); // time out → check if free, else fold
++      broadcast(room); scheduleNext(room);
++    }, timeoutMs);
++  } else {
++    room.turnDeadline = 0;
 +  }
 +  broadcast(room);
 +}
@@ -4636,7 +4793,7 @@ index 0000000..807a60b
 +    ctx.facingRaise = room.curBet > room.bb;
 +  } else {
 +    const opps = Math.max(1, activePlayers(room).length - 1);
-+    const iters = opps <= 1 ? 240 : opps === 2 ? 180 : 140;
++    const iters = opps <= 1 ? 120 : opps === 2 ? 90 : 60;
 +    ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
 +  }
 +
@@ -4763,7 +4920,7 @@ index 0000000..807a60b
 +    const opps = flopSeers.filter(o => o !== p);
 +    let perHand, weight, realizedChips = 0;
 +    if (p.sawFlop && opps.length && room.board.length >= 3) {
-+      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
++      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 120) ?? 0;
 +      realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
 +      perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
 +      weight = room.bb ? room.pot / room.bb : 1;
