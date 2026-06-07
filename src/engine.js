@@ -130,7 +130,7 @@ function sfx(room, name) { if (io) io.to(room.code).emit('sfx', name); } // broa
 function emitEquities(room) {
   const act = activePlayers(room);
   if (act.length < 2) return;
-  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 220));
+  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
 }
 
 function postBlind(room, seatIdx, amt) {
@@ -215,8 +215,8 @@ function scheduleNext(room) {
     room.turnDeadline = Date.now() + timeoutMs;
     room.actionTimer = setTimeout(() => {
       const call = Math.max(0, room.curBet - player.bet);
-      applyAction(room, seatIdx, call > 0 ? 'fold' : 'check'); // time out → check if free, else fold
-      broadcast(room); scheduleNext(room);
+      // only advance if the action actually applied — guards against stale timers cascading
+      if (applyAction(room, seatIdx, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
     }, timeoutMs);
   } else {
     room.turnDeadline = 0;
@@ -292,7 +292,7 @@ function trackGTO(room, player, action) {
     ctx.facingRaise = room.curBet > room.bb;
   } else {
     const opps = Math.max(1, activePlayers(room).length - 1);
-    const iters = opps <= 1 ? 120 : opps === 2 ? 90 : 60;
+    const iters = opps <= 1 ? 240 : opps === 2 ? 180 : 140;
     ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
   }
 
@@ -419,7 +419,7 @@ function endHand(room) {
     const opps = flopSeers.filter(o => o !== p);
     let perHand, weight, realizedChips = 0;
     if (p.sawFlop && opps.length && room.board.length >= 3) {
-      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 120) ?? 0;
+      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
       realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
       perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
       weight = room.bb ? room.pot / room.bb : 1;

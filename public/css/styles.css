@@ -57,8 +57,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm:hover{background:rgba(255,255,255,.12)}
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
-#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-#table{position:relative;width:min(96vw,1340px);height:clamp(470px,52vw,720px);margin:0 auto;
+#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 24px 118px}
+#table{position:relative;width:min(95vw,1600px);height:clamp(440px,min(72vh,48vw),780px);margin:0 auto;
   background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -431,8 +431,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .turn-timer{width:84px;height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:1px}
 .turn-timer-f{height:100%;width:100%;background:var(--gold);border-radius:3px;transition:width .25s linear}
 
-/* ── your-turn indicator (above action bar) ── */
-#turn-indicator{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 16px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
+/* ── your-turn indicator (top centre, out of the way) ── */
+#turn-indicator{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 18px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
 #turn-indicator.hidden{display:none}
 #turn-text{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--gold-l)}
 #turn-bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:5px}

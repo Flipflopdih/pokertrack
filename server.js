@@ -210,9 +210,10 @@ io.on('connection', socket => {
       broadcast(room);
       if (!room.over && room.queue[0] === mySeat) {
         if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
+        const seat = mySeat;
         room.actionTimer = setTimeout(() => {
           const call = Math.max(0, room.curBet - p.bet);
-          applyAction(room, mySeat, call > 0 ? 'fold' : 'check'); broadcast(room); scheduleNext(room);
+          if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
         }, 12000); // grace period to rejoin before auto-acting
       }
     }

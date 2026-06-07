@@ -1,5 +1,5 @@
 // ── GTO scoring: preflop heuristics (Chen) + postflop Monte-Carlo equity ──
-const { RV, makeDeck, evalBest, cmpE } = require('./cards');
+const { RV, makeDeck, evalBest, cmpE, score7 } = require('./cards');
 
 // Canonical starting-hand label, e.g. "AKs", "AKo", "TT", "72o".
 function comboLabel(c1, c2) {
@@ -23,10 +23,10 @@ function equityVsKnown(hole, board, oppHoles, iters) {
       const t = base[k]; base[k] = base[j]; base[j] = t;
     }
     const full = board.concat(base.slice(0, need));
-    const me = evalBest(hole.concat(full));
+    const me = score7(hole.concat(full));
     let lost = false, tied = false;
     for (const oh of oppHoles) {
-      const c = cmpE(evalBest(oh.concat(full)), me);
+      const c = score7(oh.concat(full)) - me;
       if (c > 0) { lost = true; break; }
       if (c === 0) tied = true;
     }
@@ -94,12 +94,11 @@ function monteCarloEquity(hole, board, nOpp, iters) {
     }
     const fullBoard = board.concat(d.slice(0, 5 - board.length));
     let idx = 5 - board.length;
-    const heroEv = evalBest(hole.concat(fullBoard));
+    const heroEv = score7(hole.concat(fullBoard));
     let lost = false, tied = false;
     for (let o = 0; o < nOpp; o++) {
-      const oppEv = evalBest([d[idx], d[idx + 1]].concat(fullBoard));
+      const c = score7([d[idx], d[idx + 1]].concat(fullBoard)) - heroEv;
       idx += 2;
-      const c = cmpE(oppEv, heroEv);
       if (c > 0) { lost = true; break; }
       if (c === 0) tied = true;
     }
@@ -176,12 +175,11 @@ function showdownEquities(entrants, board, iters) {
   for (let i = 0; i < runs; i++) {
     for (let k = 0; k < need; k++) { const j = k + (0 | Math.random() * (deck.length - k)); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; }
     const full = board.concat(deck.slice(0, need));
-    let best = null, winners = [];
+    let best = -1, winners = [];
     entrants.forEach(e => {
-      const ev = evalBest(e.cards.concat(full));
-      const c = best ? cmpE(ev, best) : 1;
-      if (c > 0) { best = ev; winners = [e.seatIndex]; }
-      else if (c === 0) winners.push(e.seatIndex);
+      const ev = score7(e.cards.concat(full));
+      if (ev > best) { best = ev; winners = [e.seatIndex]; }
+      else if (ev === best) winners.push(e.seatIndex);
     });
     winners.forEach(s => win[s] += 1 / winners.length);
   }

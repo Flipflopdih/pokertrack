@@ -78,4 +78,47 @@ function cmpE(a, b) {
   return 0;
 }
 
-module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
+// ── FAST 7-card scorer (returns a single comparable number; higher = better) ──
+// Used in the Monte-Carlo equity loops where we only need to compare, not name.
+const SU = { s: 0, h: 1, d: 2, c: 3 };
+function straightHigh(mask) {
+  let m = mask;
+  if (m & (1 << 14)) m |= 1 << 1; // ace plays low for the wheel
+  for (let hi = 14; hi >= 5; hi--) {
+    const need = (1 << hi) | (1 << (hi - 1)) | (1 << (hi - 2)) | (1 << (hi - 3)) | (1 << (hi - 4));
+    if ((m & need) === need) return hi;
+  }
+  return 0;
+}
+function score7(cards) {
+  const rc = new Array(15).fill(0);
+  const sc = [0, 0, 0, 0];
+  const suitMask = [0, 0, 0, 0];
+  let rankMask = 0;
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i], v = RV[c.r], su = SU[c.s];
+    rc[v]++; sc[su]++; suitMask[su] |= 1 << v; rankMask |= 1 << v;
+  }
+  let flushSuit = -1;
+  for (let i = 0; i < 4; i++) if (sc[i] >= 5) flushSuit = i;
+  if (flushSuit >= 0) { const sf = straightHigh(suitMask[flushSuit]); if (sf) return 8e10 + sf; }
+  let quads = 0; const trips = [], pairs = [];
+  for (let v = 14; v >= 2; v--) {
+    if (rc[v] === 4) quads = v; else if (rc[v] === 3) trips.push(v); else if (rc[v] === 2) pairs.push(v);
+  }
+  if (quads) { let k = 0; for (let v = 14; v >= 2; v--) if (v !== quads && rc[v]) { k = v; break; } return 7e10 + quads * 15 + k; }
+  if (trips.length && (pairs.length || trips.length >= 2)) {
+    const t = trips[0], p = trips.length >= 2 ? trips[1] : pairs[0];
+    return 6e10 + t * 15 + p;
+  }
+  if (flushSuit >= 0) { let s = 0, n = 0; for (let v = 14; v >= 2 && n < 5; v--) if (suitMask[flushSuit] & (1 << v)) { s = s * 15 + v; n++; } return 5e10 + s; }
+  const st = straightHigh(rankMask);
+  if (st) return 4e10 + st;
+  if (trips.length) { const t = trips[0]; let s = 0, n = 0; for (let v = 14; v >= 2 && n < 2; v--) if (v !== t && rc[v]) { s = s * 15 + v; n++; } return 3e10 + t * 225 + s; }
+  if (pairs.length >= 2) { const p1 = pairs[0], p2 = pairs[1]; let k = 0; for (let v = 14; v >= 2; v--) if (v !== p1 && v !== p2 && rc[v]) { k = v; break; } return 2e10 + p1 * 225 + p2 * 15 + k; }
+  if (pairs.length === 1) { const p = pairs[0]; let s = 0, n = 0; for (let v = 14; v >= 2 && n < 3; v--) if (v !== p && rc[v]) { s = s * 15 + v; n++; } return 1e10 + p * 3375 + s; }
+  let s = 0, n = 0; for (let v = 14; v >= 2 && n < 5; v--) if (rc[v]) { s = s * 15 + v; n++; }
+  return s;
+}
+
+module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE, score7 };

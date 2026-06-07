@@ -1102,7 +1102,7 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..75d37bb
+index 0000000..da35e06
 --- /dev/null
 +++ b/public/css/styles.css
 @@ -0,0 +1,457 @@
@@ -1165,8 +1165,8 @@ index 0000000..75d37bb
 +.btn-sm:hover{background:rgba(255,255,255,.12)}
 +.btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 +
-+#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-+#table{position:relative;width:min(96vw,1340px);height:clamp(470px,52vw,720px);margin:0 auto;
++#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 24px 118px}
++#table{position:relative;width:min(95vw,1600px);height:clamp(440px,min(72vh,48vw),780px);margin:0 auto;
 +  background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
 +  border-radius:300px/180px;border:14px solid #5c3d1e;
 +  box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -1539,8 +1539,8 @@ index 0000000..75d37bb
 +.turn-timer{width:84px;height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:1px}
 +.turn-timer-f{height:100%;width:100%;background:var(--gold);border-radius:3px;transition:width .25s linear}
 +
-+/* ── your-turn indicator (above action bar) ── */
-+#turn-indicator{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 16px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
++/* ── your-turn indicator (top centre, out of the way) ── */
++#turn-indicator{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:91;background:rgba(8,16,11,.92);border:1.5px solid var(--gold);border-radius:12px;padding:7px 18px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.5);min-width:200px}
 +#turn-indicator.hidden{display:none}
 +#turn-text{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--gold-l)}
 +#turn-bar{height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-top:5px}
@@ -3677,7 +3677,7 @@ new file mode 100644
 index 0000000..eb6788c
 Binary files /dev/null and b/public/sounds/takecard2.mp3 differ
 diff --git a/server.js b/server.js
-index acd381e..619a18b 100644
+index acd381e..3657e33 100644
 --- a/server.js
 +++ b/server.js
 @@ -3,527 +3,47 @@ const http = require('http');
@@ -4378,7 +4378,7 @@ index acd381e..619a18b 100644
    });
  
    socket.on('disconnect', () => {
-@@ -599,28 +208,34 @@ io.on('connection', socket => {
+@@ -599,28 +208,35 @@ io.on('connection', socket => {
      if (p) {
        p.connected = false;
        broadcast(room);
@@ -4386,13 +4386,14 @@ index acd381e..619a18b 100644
 -      if (room.queue[0] === mySeat) {
 +      if (!room.over && room.queue[0] === mySeat) {
 +        if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
++        const seat = mySeat;
          room.actionTimer = setTimeout(() => {
 -          applyAction(room, mySeat, 'fold');
 -          broadcast(room);
 -          scheduleNext(room);
 -        }, 10000);
 +          const call = Math.max(0, room.curBet - p.bet);
-+          applyAction(room, mySeat, call > 0 ? 'fold' : 'check'); broadcast(room); scheduleNext(room);
++          if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
 +        }, 12000); // grace period to rejoin before auto-acting
        }
      }
@@ -4431,10 +4432,10 @@ index acd381e..619a18b 100644
  });
 diff --git a/src/cards.js b/src/cards.js
 new file mode 100644
-index 0000000..2e073b7
+index 0000000..5c7b63f
 --- /dev/null
 +++ b/src/cards.js
-@@ -0,0 +1,81 @@
+@@ -0,0 +1,124 @@
 +// ── Cards & hand evaluation (pure, no dependencies) ──
 +const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
 +const SUITS = ['s','h','d','c'];
@@ -4515,10 +4516,53 @@ index 0000000..2e073b7
 +  return 0;
 +}
 +
-+module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
++// ── FAST 7-card scorer (returns a single comparable number; higher = better) ──
++// Used in the Monte-Carlo equity loops where we only need to compare, not name.
++const SU = { s: 0, h: 1, d: 2, c: 3 };
++function straightHigh(mask) {
++  let m = mask;
++  if (m & (1 << 14)) m |= 1 << 1; // ace plays low for the wheel
++  for (let hi = 14; hi >= 5; hi--) {
++    const need = (1 << hi) | (1 << (hi - 1)) | (1 << (hi - 2)) | (1 << (hi - 3)) | (1 << (hi - 4));
++    if ((m & need) === need) return hi;
++  }
++  return 0;
++}
++function score7(cards) {
++  const rc = new Array(15).fill(0);
++  const sc = [0, 0, 0, 0];
++  const suitMask = [0, 0, 0, 0];
++  let rankMask = 0;
++  for (let i = 0; i < cards.length; i++) {
++    const c = cards[i], v = RV[c.r], su = SU[c.s];
++    rc[v]++; sc[su]++; suitMask[su] |= 1 << v; rankMask |= 1 << v;
++  }
++  let flushSuit = -1;
++  for (let i = 0; i < 4; i++) if (sc[i] >= 5) flushSuit = i;
++  if (flushSuit >= 0) { const sf = straightHigh(suitMask[flushSuit]); if (sf) return 8e10 + sf; }
++  let quads = 0; const trips = [], pairs = [];
++  for (let v = 14; v >= 2; v--) {
++    if (rc[v] === 4) quads = v; else if (rc[v] === 3) trips.push(v); else if (rc[v] === 2) pairs.push(v);
++  }
++  if (quads) { let k = 0; for (let v = 14; v >= 2; v--) if (v !== quads && rc[v]) { k = v; break; } return 7e10 + quads * 15 + k; }
++  if (trips.length && (pairs.length || trips.length >= 2)) {
++    const t = trips[0], p = trips.length >= 2 ? trips[1] : pairs[0];
++    return 6e10 + t * 15 + p;
++  }
++  if (flushSuit >= 0) { let s = 0, n = 0; for (let v = 14; v >= 2 && n < 5; v--) if (suitMask[flushSuit] & (1 << v)) { s = s * 15 + v; n++; } return 5e10 + s; }
++  const st = straightHigh(rankMask);
++  if (st) return 4e10 + st;
++  if (trips.length) { const t = trips[0]; let s = 0, n = 0; for (let v = 14; v >= 2 && n < 2; v--) if (v !== t && rc[v]) { s = s * 15 + v; n++; } return 3e10 + t * 225 + s; }
++  if (pairs.length >= 2) { const p1 = pairs[0], p2 = pairs[1]; let k = 0; for (let v = 14; v >= 2; v--) if (v !== p1 && v !== p2 && rc[v]) { k = v; break; } return 2e10 + p1 * 225 + p2 * 15 + k; }
++  if (pairs.length === 1) { const p = pairs[0]; let s = 0, n = 0; for (let v = 14; v >= 2 && n < 3; v--) if (v !== p && rc[v]) { s = s * 15 + v; n++; } return 1e10 + p * 3375 + s; }
++  let s = 0, n = 0; for (let v = 14; v >= 2 && n < 5; v--) if (rc[v]) { s = s * 15 + v; n++; }
++  return s;
++}
++
++module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE, score7 };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..6816f1f
+index 0000000..42e866d
 --- /dev/null
 +++ b/src/engine.js
 @@ -0,0 +1,474 @@
@@ -4654,7 +4698,7 @@ index 0000000..6816f1f
 +function emitEquities(room) {
 +  const act = activePlayers(room);
 +  if (act.length < 2) return;
-+  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 220));
++  io.to(room.code).emit('equities', showdownEquities(act.map(p => ({ seatIndex: p.seatIndex, cards: p.cards })), room.board, 400));
 +}
 +
 +function postBlind(room, seatIdx, amt) {
@@ -4739,8 +4783,8 @@ index 0000000..6816f1f
 +    room.turnDeadline = Date.now() + timeoutMs;
 +    room.actionTimer = setTimeout(() => {
 +      const call = Math.max(0, room.curBet - player.bet);
-+      applyAction(room, seatIdx, call > 0 ? 'fold' : 'check'); // time out → check if free, else fold
-+      broadcast(room); scheduleNext(room);
++      // only advance if the action actually applied — guards against stale timers cascading
++      if (applyAction(room, seatIdx, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
 +    }, timeoutMs);
 +  } else {
 +    room.turnDeadline = 0;
@@ -4816,7 +4860,7 @@ index 0000000..6816f1f
 +    ctx.facingRaise = room.curBet > room.bb;
 +  } else {
 +    const opps = Math.max(1, activePlayers(room).length - 1);
-+    const iters = opps <= 1 ? 120 : opps === 2 ? 90 : 60;
++    const iters = opps <= 1 ? 240 : opps === 2 ? 180 : 140;
 +    ctx.equity = monteCarloEquity(player.cards, room.board, opps, iters) ?? 0;
 +  }
 +
@@ -4943,7 +4987,7 @@ index 0000000..6816f1f
 +    const opps = flopSeers.filter(o => o !== p);
 +    let perHand, weight, realizedChips = 0;
 +    if (p.sawFlop && opps.length && room.board.length >= 3) {
-+      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 120) ?? 0;
++      const eq = equityVsKnown(p.cards, flop, opps.map(o => o.cards), 200) ?? 0;
 +      realizedChips = (winnings[p.seatIndex] || 0) - eq * room.pot;
 +      perHand = room.pot ? Math.max(-1, Math.min(1, realizedChips / room.pot)) : 0;
 +      weight = room.bb ? room.pot / room.bb : 1;
@@ -4998,12 +5042,12 @@ index 0000000..6816f1f
 +};
 diff --git a/src/gto.js b/src/gto.js
 new file mode 100644
-index 0000000..e436c82
+index 0000000..5b882bf
 --- /dev/null
 +++ b/src/gto.js
-@@ -0,0 +1,207 @@
+@@ -0,0 +1,205 @@
 +// ── GTO scoring: preflop heuristics (Chen) + postflop Monte-Carlo equity ──
-+const { RV, makeDeck, evalBest, cmpE } = require('./cards');
++const { RV, makeDeck, evalBest, cmpE, score7 } = require('./cards');
 +
 +// Canonical starting-hand label, e.g. "AKs", "AKo", "TT", "72o".
 +function comboLabel(c1, c2) {
@@ -5027,10 +5071,10 @@ index 0000000..e436c82
 +      const t = base[k]; base[k] = base[j]; base[j] = t;
 +    }
 +    const full = board.concat(base.slice(0, need));
-+    const me = evalBest(hole.concat(full));
++    const me = score7(hole.concat(full));
 +    let lost = false, tied = false;
 +    for (const oh of oppHoles) {
-+      const c = cmpE(evalBest(oh.concat(full)), me);
++      const c = score7(oh.concat(full)) - me;
 +      if (c > 0) { lost = true; break; }
 +      if (c === 0) tied = true;
 +    }
@@ -5098,12 +5142,11 @@ index 0000000..e436c82
 +    }
 +    const fullBoard = board.concat(d.slice(0, 5 - board.length));
 +    let idx = 5 - board.length;
-+    const heroEv = evalBest(hole.concat(fullBoard));
++    const heroEv = score7(hole.concat(fullBoard));
 +    let lost = false, tied = false;
 +    for (let o = 0; o < nOpp; o++) {
-+      const oppEv = evalBest([d[idx], d[idx + 1]].concat(fullBoard));
++      const c = score7([d[idx], d[idx + 1]].concat(fullBoard)) - heroEv;
 +      idx += 2;
-+      const c = cmpE(oppEv, heroEv);
 +      if (c > 0) { lost = true; break; }
 +      if (c === 0) tied = true;
 +    }
@@ -5180,12 +5223,11 @@ index 0000000..e436c82
 +  for (let i = 0; i < runs; i++) {
 +    for (let k = 0; k < need; k++) { const j = k + (0 | Math.random() * (deck.length - k)); const t = deck[k]; deck[k] = deck[j]; deck[j] = t; }
 +    const full = board.concat(deck.slice(0, need));
-+    let best = null, winners = [];
++    let best = -1, winners = [];
 +    entrants.forEach(e => {
-+      const ev = evalBest(e.cards.concat(full));
-+      const c = best ? cmpE(ev, best) : 1;
-+      if (c > 0) { best = ev; winners = [e.seatIndex]; }
-+      else if (c === 0) winners.push(e.seatIndex);
++      const ev = score7(e.cards.concat(full));
++      if (ev > best) { best = ev; winners = [e.seatIndex]; }
++      else if (ev === best) winners.push(e.seatIndex);
 +    });
 +    winners.forEach(s => win[s] += 1 / winners.length);
 +  }
