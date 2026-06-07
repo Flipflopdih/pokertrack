@@ -1102,10 +1102,10 @@ index 0000000..cf8feda
 +}
 diff --git a/public/css/styles.css b/public/css/styles.css
 new file mode 100644
-index 0000000..a36f2fd
+index 0000000..75d37bb
 --- /dev/null
 +++ b/public/css/styles.css
-@@ -0,0 +1,451 @@
+@@ -0,0 +1,457 @@
 +*{box-sizing:border-box;margin:0;padding:0}
 +:root{--felt:#1b3d2a;--felt-mid:#1e4830;--felt-dark:#0f2017;--rail:#5c3d1e;--rail-dark:#3a2510;--gold:#c9a84c;--gold-l:#e8cc7a}
 +body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-height:100vh;overflow-x:hidden}
@@ -1166,7 +1166,7 @@ index 0000000..a36f2fd
 +.btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 +
 +#table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-+#table{position:relative;width:100%;max-width:1340px;min-height:680px;margin:0 auto;
++#table{position:relative;width:min(96vw,1340px);height:clamp(470px,52vw,720px);margin:0 auto;
 +  background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
 +  border-radius:300px/180px;border:14px solid #5c3d1e;
 +  box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -1207,12 +1207,13 @@ index 0000000..a36f2fd
 +#cpot:empty{display:none}
 +#cstreet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(201,168,76,.5);font-weight:600}
 +@media(max-width:760px){
-+  #table{min-height:440px;padding:34px 30px 44px;border-width:10px;border-radius:200px/150px}
++  #table{height:clamp(380px,68vw,520px);padding:30px 26px 40px;border-width:10px;border-radius:200px/150px}
 +  #table::before{inset:14px}
 +  #table-logo{font-size:20px}
-+  .tseat{width:104px}
-+  .tseat .av{width:44px;height:44px;font-size:15px}
-+  .lg{width:48px;height:68px}.board-slot{width:48px;height:68px}
++  .tseat{width:96px}
++  .tseat .av{width:46px;height:46px;font-size:15px}
++  .lg{width:54px;height:76px}.board-slot{width:54px;height:76px}
++  .xl{width:64px;height:90px}
 +  #table-wrap{padding:14px 10px 150px}
 +}
 +
@@ -1557,8 +1558,13 @@ index 0000000..a36f2fd
 +.pre-btn:hover{background:rgba(255,255,255,.1)}
 +.pre-btn.pre-fold{border-color:rgba(231,76,60,.35);color:#ff6f62}
 +.pre-btn.armed{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:700}
++
++/* pre-action: buttons clickable before your turn; armed = queued */
++#abar.prearm{opacity:.92}
++#abar.prearm::before{content:'Pre-action — fires on your turn';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.04em;color:rgba(255,255,255,.45);white-space:nowrap}
++.abtn.armed{background:var(--gold)!important;color:#1a1409!important;border-color:#f0d896!important;box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(201,168,76,.5)!important}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..db273ba 100644
+index 0edbb13..7c7ea10 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1879,7 +1885,7 @@ index 0edbb13..db273ba 100644
        <div id="tseats"></div>
        <div id="community">
          <div id="cstreet"></div>
-@@ -292,52 +136,109 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -292,52 +136,102 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
        <div id="p-area">
          <div id="p-hole"></div>
          <div id="p-info">
@@ -1928,16 +1934,9 @@ index 0edbb13..db273ba 100644
 +      </div>
      </div>
 -    <button class="abtn allin" onclick="send('allin')">All-in</button>
-+  </div>
+   </div>
 +  <!-- your-turn indicator + countdown -->
 +  <div id="turn-indicator" class="hidden"><span id="turn-text">YOUR TURN</span><div id="turn-bar"><div id="turn-bar-f"></div></div></div>
-+  <!-- pre-action bar (queue an action for when it's your turn) -->
-+  <div id="preaction" class="hidden">
-+    <span class="pre-lbl">Pre-action</span>
-+    <button class="pre-btn" id="pre-checkfold" onclick="togglePre('checkfold')">Check/Fold</button>
-+    <button class="pre-btn" id="pre-callany" onclick="togglePre('callany')">Call any</button>
-+    <button class="pre-btn pre-fold" id="pre-fold" onclick="togglePre('fold')">Fold</button>
-   </div>
  </div>
  
 -<!-- ── SETTINGS PANEL ── -->
@@ -2013,7 +2012,7 @@ index 0edbb13..db273ba 100644
  <!-- ── RESULTS ── -->
  <div id="s-results" class="screen">
    <div id="res-inner">
-@@ -351,493 +252,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
+@@ -351,493 +245,6 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
    </div>
  </div>
  
@@ -2510,10 +2509,10 @@ index 0edbb13..db273ba 100644
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..f6d4703
+index 0000000..facbed0
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,1117 @@
+@@ -0,0 +1,1139 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2589,11 +2588,19 @@ index 0000000..f6d4703
 +  function knock(t0) {
 +    for (let k = 0; k < 2; k++) {
 +      const t = t0 + k * 0.085;
++      // body thump
 +      const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-+      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
-+      f.type = 'lowpass'; f.frequency.value = 400;
-+      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-+      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.09);
++      o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
++      f.type = 'lowpass'; f.frequency.value = 500;
++      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
++      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.1);
++      // knuckle click (filtered noise) for a sharper, louder knock
++      const n = Math.floor(ctx.sampleRate * 0.02), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
++      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
++      const src = ctx.createBufferSource(); src.buffer = buf;
++      const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1800;
++      const ng = ctx.createGain(); ng.gain.value = 0.5;
++      src.connect(nf); nf.connect(ng); ng.connect(ctx.destination); src.start(t); src.stop(t + 0.03);
 +    }
 +  }
 +  return {
@@ -2616,23 +2623,6 @@ index 0000000..f6d4703
 +function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
 +// unlock + preload audio on the first user interaction
 +window.addEventListener('pointerdown', () => sfx.init(), { once: true });
-+
-+// Play sounds by diffing successive states (deal on new hand, per-seat actions).
-+function soundsFromState(state) {
-+  if (state.phase !== 'playing') return;
-+  if (state.handNum !== prevHandNum) { if (prevHandNum !== 0) sfx.play('deal'); prevHandNum = state.handNum; prevActions = {}; }
-+  state.seats.forEach(s => {
-+    if (!s) return;
-+    const la = s.lastAction || '', prev = prevActions[s.seatIndex];
-+    if (la === prev) return;
-+    prevActions[s.seatIndex] = la;
-+    if (la.startsWith('Fold')) sfx.play('fold');
-+    else if (la.startsWith('Check')) sfx.play('check');
-+    else if (la.startsWith('Call')) sfx.play('call');
-+    else if (la.startsWith('Raise')) sfx.play('raise');
-+    else if (la.startsWith('All-in')) sfx.play('allin');
-+  });
-+}
 +
 +// ── SOCKET ──
 +function initSocket() {
@@ -2674,7 +2664,6 @@ index 0000000..f6d4703
 +    if (state.phase === 'waiting' && currentScreen === 's-game') showScreen('s-seats');
 +    renderSeatChooser(state);
 +    if (state.phase === 'playing') renderGame(state);
-+    soundsFromState(state);
 +    updateSettingsBtn();
 +  });
 +
@@ -2730,6 +2719,7 @@ index 0000000..f6d4703
 +  });
 +
 +  socket.on('chat_msg', addChatMsg);
++  socket.on('sfx', name => sfx.play(name)); // server-driven sound cues (fires for everyone)
 +
 +  socket.on('equities', eq => { equities = eq; if (lastState) renderGame(lastState); });
 +  socket.on('reaction', ({ seatIndex, emoji }) => floatReaction(seatIndex, emoji));
@@ -2754,7 +2744,7 @@ index 0000000..f6d4703
 +}
 +function floatReaction(seatIndex, emoji) {
 +  const me = lastState && lastState.seats.find(s => s && s.isYou);
-+  const pos = (me && me.seatIndex === seatIndex) ? { x: '50%', y: '78%' } : (SEAT_POS[seatIndex] || SEAT_POS[0]);
++  const pos = displayPos(seatIndex);
 +  const wrap = document.getElementById('tbets'); if (!wrap) return;
 +  const el = document.createElement('div');
 +  el.className = 'react-float'; el.textContent = emoji;
@@ -2989,16 +2979,19 @@ index 0000000..f6d4703
 +}
 +
 +// ── GAME RENDER ──
-+const SEAT_POS = [
-+  {x:'50%', y:'17%'},  // seat 0 — top center
-+  {x:'79%', y:'24%'},  // seat 1 — top right
-+  {x:'90%', y:'46%'},  // seat 2 — right
-+  {x:'79%', y:'68%'},  // seat 3 — bottom right
-+  {x:'50%', y:'75%'},  // seat 4 — bottom center (not used — player sits here)
-+  {x:'21%', y:'68%'},  // seat 5 — bottom left
-+  {x:'10%', y:'46%'},  // seat 6 — left
-+  {x:'21%', y:'24%'},  // seat 7 — top left
-+];
++// Seats are placed around the oval relative to YOU: you're always bottom-centre
++// (rel 0), everyone else spreads evenly around the rest of the table.
++function seatPosFor(rel, n) {
++  const ang = (90 + rel * (360 / n)) * Math.PI / 180; // 90° = bottom-centre
++  return { x: (50 + 41 * Math.cos(ang)).toFixed(1) + '%', y: (47 + 38 * Math.sin(ang)).toFixed(1) + '%' };
++}
++function displayPos(seatIndex) {
++  if (!lastState) return { x: '50%', y: '50%' };
++  const n = lastState.maxSeats || 8;
++  const me = lastState.seats.find(s => s && s.isYou);
++  const rel = me ? (seatIndex - me.seatIndex + n) % n : seatIndex;
++  return seatPosFor(rel, n);
++}
 +
 +function actClass(t) {
 +  return t.startsWith('Fold') ? 'tact-fold'
@@ -3009,19 +3002,23 @@ index 0000000..f6d4703
 +    : t.startsWith('All') ? 'tact-allin' : '';
 +}
 +
-+// ── PRE-ACTIONS (queue a move for when it's your turn) ──
-+function renderPreActions(state, me, myTurn) {
-+  const bar = document.getElementById('preaction');
-+  const show = !myTurn && me && !me.folded && !state.over && state.phase === 'playing' && me.chips > 0 && !me.sittingOut;
-+  bar.classList.toggle('hidden', !show);
-+  if (!show) { if (pendingPre) pendingPre = null; return; }
-+  ['checkfold', 'callany', 'fold'].forEach(k => document.getElementById('pre-' + k).classList.toggle('armed', pendingPre === k));
++// ── PRE-ACTIONS (press the normal buttons before your turn to queue them) ──
++function armPre(action) {
++  if (!lastState) return;
++  pendingPre = (pendingPre && pendingPre.action === action) ? null
++    : { action, betLevel: lastState.curBet };
++  renderGame(lastState); // refresh button highlight
 +}
-+function togglePre(k) { pendingPre = pendingPre === k ? null : k; if (lastState) renderPreActions(lastState, lastState.seats.find(s => s && s.isYou), false); }
-+function firePre(pa, call) {
-+  if (pa === 'fold') send('fold');
-+  else if (pa === 'checkfold') send(call > 0 ? 'fold' : 'check');
-+  else if (pa === 'callany') send(call > 0 ? 'call' : 'check');
++// returns true if the queued action was actually played (false = cancelled, act manually)
++function firePre(pre, call, curBet) {
++  if (pre.action === 'fold') { send('fold'); return true; }
++  if (pre.action === 'check') { if (call === 0) { send('check'); return true; } return false; }
++  if (pre.action === 'call') {
++    // cancel a pre-call if the bet grew beyond what you committed to
++    if (curBet > pre.betLevel) return false;
++    send(call > 0 ? 'call' : 'check'); return true;
++  }
++  return false;
 +}
 +
 +// ── TURN CLOCK ──
@@ -3080,7 +3077,7 @@ index 0000000..f6d4703
 +  updateBlindLevel(state);
 +  if (!turnTick) turnTick = setInterval(updateTurnClock, 250);
 +  const newHand = state.handNum !== prevHandNum;
-+  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; } // reset per hand
++  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; prevHandNum = state.handNum; } // reset per hand
 +  if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 +
 +  // Board — newly dealt cards (flop/turn/river) get a short deal-in animation
@@ -3108,10 +3105,12 @@ index 0000000..f6d4703
 +  wrap.innerHTML = '';
 +  betWrap.innerHTML = '';
 +
++  const heroIdx = me ? me.seatIndex : null;
 +  for (let i = 0; i < maxSeats; i++) {
 +    const s = state.seats[i];
-+    if (s && s.isYou) continue; // hero renders at the bottom
-+    const pos = SEAT_POS[i] || SEAT_POS[0];
++    const rel = heroIdx != null ? (i - heroIdx + maxSeats) % maxSeats : i;
++    if (heroIdx != null && rel === 0) continue; // your seat renders at the bottom
++    const pos = seatPosFor(rel, maxSeats);
 +    const seat = document.createElement('div');
 +    seat.style.left = pos.x;
 +    seat.style.top = pos.y;
@@ -3175,26 +3174,38 @@ index 0000000..f6d4703
 +    // action bar
 +    const myTurn = me.isTurn && !state.over;
 +    const call = Math.max(0, state.curBet - me.bet);
-+    // pre-action bar shown while it's NOT your turn (and you're still in the hand)
-+    renderPreActions(state, me, myTurn);
-+    if (myTurn) {
-+      // fire a queued pre-action if one is armed
-+      if (pendingPre) { const pa = pendingPre; pendingPre = null; firePre(pa, call); document.getElementById('abar').classList.add('off'); return; }
++    const inHand = !me.folded && !me.sittingOut && state.phase === 'playing' && !state.over && me.chips > 0;
++    const abar = document.getElementById('abar');
++
++    // a queued pre-action that's no longer valid is dropped (e.g. someone bet above your pre-call)
++    if (pendingPre) {
++      if (pendingPre.action === 'check' && call > 0) pendingPre = null;
++      else if (pendingPre.action === 'call' && state.curBet > pendingPre.betLevel) pendingPre = null;
++    }
++    // fire a queued pre-action when it becomes your turn
++    if (myTurn && pendingPre) {
++      const pre = pendingPre; pendingPre = null;
++      ['btn-fold', 'btn-check', 'btn-call'].forEach(id => document.getElementById(id).classList.remove('armed'));
++      if (firePre(pre, call, state.curBet)) { abar.classList.add('off'); return; }
++      // cancelled → fall through and act manually
++    }
++
++    if (myTurn || inHand) {
++      const preMode = !myTurn;
++      abar.classList.toggle('prearm', preMode);
 +      const canCheck = call === 0;
 +
-+      // Call: enabled only when there's something to call
 +      const callBtn = document.getElementById('btn-call');
 +      setBtnEnabled(callBtn, !canCheck);
 +      callBtn.querySelector('.albl').textContent = canCheck ? 'Call'
 +        : call >= me.chips ? 'All-in ' + me.chips : 'Call ' + call;
-+
-+      // Check: enabled only when nothing to call
 +      setBtnEnabled(document.getElementById('btn-check'), canCheck);
++      setBtnEnabled(document.getElementById('btn-fold'), true);
 +
-+      // Raise / Bet: enabled only when the player has chips beyond the call
-+      const minTotal = Math.max(state.bb, state.curBet + state.bb); // min legal total bet
-+      const maxTotal = me.bet + me.chips;                          // all-in total
-+      const canRaise = me.chips > call && maxTotal > state.curBet;
++      // Raise / Bet — only live on your turn (you can't pre-raise)
++      const minTotal = Math.max(state.bb, state.curBet + state.bb);
++      const maxTotal = me.bet + me.chips;
++      const canRaise = !preMode && me.chips > call && maxTotal > state.curBet;
 +      const raiseBtn = document.getElementById('btn-raise-open');
 +      raiseBtn.querySelector('.albl').textContent = state.curBet === 0 ? 'Bet' : 'Raise';
 +      setBtnEnabled(raiseBtn, canRaise);
@@ -3205,18 +3216,21 @@ index 0000000..f6d4703
 +        if (+sl.value < lo || +sl.value > maxTotal) sl.value = lo;
 +        raiseCtx = { pot: state.pot, curBet: state.curBet, bet: me.bet, lo, hi: maxTotal };
 +        onRaiseInput('slider');
-+      } else {
-+        raiseCtx = null;
-+      }
++      } else { raiseCtx = null; }
 +
-+      // On a fresh turn, always start on the primary panel
-+      if (!myTurnWas) showRaisePanel(false);
-+      myTurnWas = true;
-+      document.getElementById('abar').classList.remove('off');
++      // highlight an armed pre-action
++      const armMap = { fold: 'btn-fold', check: 'btn-check', call: 'btn-call' };
++      ['btn-fold', 'btn-check', 'btn-call'].forEach(id => document.getElementById(id).classList.remove('armed'));
++      if (preMode && pendingPre && armMap[pendingPre.action]) document.getElementById(armMap[pendingPre.action]).classList.add('armed');
++
++      if (!myTurn || !myTurnWas) showRaisePanel(false);
++      myTurnWas = myTurn;
++      abar.classList.remove('off');
 +    } else {
-+      myTurnWas = false;
++      myTurnWas = false; pendingPre = null;
 +      showRaisePanel(false);
-+      document.getElementById('abar').classList.add('off');
++      abar.classList.add('off');
++      abar.classList.remove('prearm');
 +    }
 +  }
 +}
@@ -3272,7 +3286,14 @@ index 0000000..f6d4703
 +}
 +
 +function send(action) {
-+  if (!socket || !roomCode) return;
++  if (!socket || !roomCode || !lastState) return;
++  const me = lastState.seats.find(s => s && s.isYou);
++  const myTurn = me && me.isTurn && !lastState.over;
++  if (!myTurn) { // not your turn yet → queue it as a pre-action (raise/all-in can't be pre-armed)
++    if (action === 'raise' || action === 'allin') return;
++    armPre(action);
++    return;
++  }
 +  pendingPre = null;
 +  const amount = action === 'raise' ? +document.getElementById('rslider').value : 0;
 +  socket.emit('action', { code: roomCode, action, amount });
@@ -4497,10 +4518,10 @@ index 0000000..2e073b7
 +module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..7a2407a
+index 0000000..6816f1f
 --- /dev/null
 +++ b/src/engine.js
-@@ -0,0 +1,472 @@
+@@ -0,0 +1,474 @@
 +// ── Game engine: rooms, dealing, betting, showdown, side pots ──
 +const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
 +const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities } = require('./gto');
@@ -4627,6 +4648,7 @@ index 0000000..7a2407a
 +}
 +
 +function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 0).length <= 1; }
++function sfx(room, name) { if (io) io.to(room.code).emit('sfx', name); } // broadcast a sound cue to everyone
 +
 +// Broadcast live win% for everyone still in (used during all-in run-outs).
 +function emitEquities(room) {
@@ -4680,6 +4702,7 @@ index 0000000..7a2407a
 +  else room.dealer = filled[(filled.indexOf(room.dealer) + 1) % filled.length];
 +
 +  for (let i = 0; i < 2; i++) players.forEach(p => p.cards.push(deck[room.di++]));
++  sfx(room, 'deal');
 +
 +  players.forEach(p => { p.curPF = pfStr(p.cards[0], p.cards[1]); });
 +
@@ -4736,17 +4759,17 @@ index 0000000..7a2407a
 +
 +  if (action === 'fold') {
 +    p.folded = true; p.lastAction = 'Fold'; p.stat.folds++;
-+    trackGTO(room, p, 'fold');
++    trackGTO(room, p, 'fold'); sfx(room, 'fold');
 +  } else if (action === 'check') {
 +    if (call > 0) return false;
 +    p.lastAction = 'Check'; p.stat.vpip++;
-+    trackGTO(room, p, 'check');
++    trackGTO(room, p, 'check'); sfx(room, 'check');
 +  } else if (action === 'call') {
 +    if (call === 0) return false;
 +    const pay = commit(room, p, call);
 +    p.lastAction = pay < call ? 'All-in ' + p.bet : 'Call ' + pay;
 +    p.stat.vpip++;
-+    trackGTO(room, p, 'call');
++    trackGTO(room, p, 'call'); sfx(room, pay < call ? 'allin' : 'call');
 +  } else if (action === 'raise') {
 +    if (p.chips <= call) return false;
 +    const minRaise = room.curBet + room.bb;
@@ -4757,7 +4780,7 @@ index 0000000..7a2407a
 +    room.curBet = p.bet;
 +    p.lastAction = (p.chips === 0 ? 'All-in ' : 'Raise ') + p.bet;
 +    p.stat.vpip++;
-+    trackGTO(room, p, 'raise');
++    trackGTO(room, p, 'raise'); sfx(room, p.chips === 0 ? 'allin' : 'raise');
 +    room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);
 +    return true;
 +  } else if (action === 'allin') {
@@ -4766,7 +4789,7 @@ index 0000000..7a2407a
 +    commit(room, p, p.chips);
 +    p.lastAction = 'All-in ' + p.bet;
 +    p.stat.vpip++;
-+    trackGTO(room, p, wasRaise ? 'raise' : 'call');
++    trackGTO(room, p, wasRaise ? 'raise' : 'call'); sfx(room, 'allin');
 +    if (wasRaise) {
 +      room.curBet = p.bet;
 +      room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);

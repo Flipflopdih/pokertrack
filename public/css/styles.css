@@ -58,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
 #table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:26px 26px 150px}
-#table{position:relative;width:100%;max-width:1340px;min-height:680px;margin:0 auto;
+#table{position:relative;width:min(96vw,1340px);height:clamp(470px,52vw,720px);margin:0 auto;
   background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -99,12 +99,13 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 #cpot:empty{display:none}
 #cstreet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(201,168,76,.5);font-weight:600}
 @media(max-width:760px){
-  #table{min-height:440px;padding:34px 30px 44px;border-width:10px;border-radius:200px/150px}
+  #table{height:clamp(380px,68vw,520px);padding:30px 26px 40px;border-width:10px;border-radius:200px/150px}
   #table::before{inset:14px}
   #table-logo{font-size:20px}
-  .tseat{width:104px}
-  .tseat .av{width:44px;height:44px;font-size:15px}
-  .lg{width:48px;height:68px}.board-slot{width:48px;height:68px}
+  .tseat{width:96px}
+  .tseat .av{width:46px;height:46px;font-size:15px}
+  .lg{width:54px;height:76px}.board-slot{width:54px;height:76px}
+  .xl{width:64px;height:90px}
   #table-wrap{padding:14px 10px 150px}
 }
 
@@ -449,3 +450,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .pre-btn:hover{background:rgba(255,255,255,.1)}
 .pre-btn.pre-fold{border-color:rgba(231,76,60,.35);color:#ff6f62}
 .pre-btn.armed{background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:700}
+
+/* pre-action: buttons clickable before your turn; armed = queued */
+#abar.prearm{opacity:.92}
+#abar.prearm::before{content:'Pre-action — fires on your turn';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.04em;color:rgba(255,255,255,.45);white-space:nowrap}
+.abtn.armed{background:var(--gold)!important;color:#1a1409!important;border-color:#f0d896!important;box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(201,168,76,.5)!important}

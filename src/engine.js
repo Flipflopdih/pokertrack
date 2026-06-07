@@ -124,6 +124,7 @@ function broadcast(room) {
 }
 
 function bettingClosed(room) { return activePlayers(room).filter(p => p.chips > 0).length <= 1; }
+function sfx(room, name) { if (io) io.to(room.code).emit('sfx', name); } // broadcast a sound cue to everyone
 
 // Broadcast live win% for everyone still in (used during all-in run-outs).
 function emitEquities(room) {
@@ -177,6 +178,7 @@ function dealHand(room) {
   else room.dealer = filled[(filled.indexOf(room.dealer) + 1) % filled.length];
 
   for (let i = 0; i < 2; i++) players.forEach(p => p.cards.push(deck[room.di++]));
+  sfx(room, 'deal');
 
   players.forEach(p => { p.curPF = pfStr(p.cards[0], p.cards[1]); });
 
@@ -233,17 +235,17 @@ function applyAction(room, seatIdx, action, raiseAmt) {
 
   if (action === 'fold') {
     p.folded = true; p.lastAction = 'Fold'; p.stat.folds++;
-    trackGTO(room, p, 'fold');
+    trackGTO(room, p, 'fold'); sfx(room, 'fold');
   } else if (action === 'check') {
     if (call > 0) return false;
     p.lastAction = 'Check'; p.stat.vpip++;
-    trackGTO(room, p, 'check');
+    trackGTO(room, p, 'check'); sfx(room, 'check');
   } else if (action === 'call') {
     if (call === 0) return false;
     const pay = commit(room, p, call);
     p.lastAction = pay < call ? 'All-in ' + p.bet : 'Call ' + pay;
     p.stat.vpip++;
-    trackGTO(room, p, 'call');
+    trackGTO(room, p, 'call'); sfx(room, pay < call ? 'allin' : 'call');
   } else if (action === 'raise') {
     if (p.chips <= call) return false;
     const minRaise = room.curBet + room.bb;
@@ -254,7 +256,7 @@ function applyAction(room, seatIdx, action, raiseAmt) {
     room.curBet = p.bet;
     p.lastAction = (p.chips === 0 ? 'All-in ' : 'Raise ') + p.bet;
     p.stat.vpip++;
-    trackGTO(room, p, 'raise');
+    trackGTO(room, p, 'raise'); sfx(room, p.chips === 0 ? 'allin' : 'raise');
     room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);
     return true;
   } else if (action === 'allin') {
@@ -263,7 +265,7 @@ function applyAction(room, seatIdx, action, raiseAmt) {
     commit(room, p, p.chips);
     p.lastAction = 'All-in ' + p.bet;
     p.stat.vpip++;
-    trackGTO(room, p, wasRaise ? 'raise' : 'call');
+    trackGTO(room, p, wasRaise ? 'raise' : 'call'); sfx(room, 'allin');
     if (wasRaise) {
       room.curBet = p.bet;
       room.queue = buildQueue(room, nextSeat(room, seatIdx), seatIdx);

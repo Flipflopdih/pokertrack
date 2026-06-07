@@ -73,11 +73,19 @@ const sfx = (() => {
   function knock(t0) {
     for (let k = 0; k < 2; k++) {
       const t = t0 + k * 0.085;
+      // body thump
       const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
-      f.type = 'lowpass'; f.frequency.value = 400;
-      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.09);
+      o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
+      f.type = 'lowpass'; f.frequency.value = 500;
+      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      o.connect(f); f.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.1);
+      // knuckle click (filtered noise) for a sharper, louder knock
+      const n = Math.floor(ctx.sampleRate * 0.02), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1800;
+      const ng = ctx.createGain(); ng.gain.value = 0.5;
+      src.connect(nf); nf.connect(ng); ng.connect(ctx.destination); src.start(t); src.stop(t + 0.03);
     }
   }
   return {
@@ -100,23 +108,6 @@ const sfx = (() => {
 function toggleMute() { const m = sfx.toggle(); const b = document.getElementById('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊'; }
 // unlock + preload audio on the first user interaction
 window.addEventListener('pointerdown', () => sfx.init(), { once: true });
-
-// Play sounds by diffing successive states (deal on new hand, per-seat actions).
-function soundsFromState(state) {
-  if (state.phase !== 'playing') return;
-  if (state.handNum !== prevHandNum) { if (prevHandNum !== 0) sfx.play('deal'); prevHandNum = state.handNum; prevActions = {}; }
-  state.seats.forEach(s => {
-    if (!s) return;
-    const la = s.lastAction || '', prev = prevActions[s.seatIndex];
-    if (la === prev) return;
-    prevActions[s.seatIndex] = la;
-    if (la.startsWith('Fold')) sfx.play('fold');
-    else if (la.startsWith('Check')) sfx.play('check');
-    else if (la.startsWith('Call')) sfx.play('call');
-    else if (la.startsWith('Raise')) sfx.play('raise');
-    else if (la.startsWith('All-in')) sfx.play('allin');
-  });
-}
 
 // ── SOCKET ──
 function initSocket() {
@@ -158,7 +149,6 @@ function initSocket() {
     if (state.phase === 'waiting' && currentScreen === 's-game') showScreen('s-seats');
     renderSeatChooser(state);
     if (state.phase === 'playing') renderGame(state);
-    soundsFromState(state);
     updateSettingsBtn();
   });
 
@@ -214,6 +204,7 @@ function initSocket() {
   });
 
   socket.on('chat_msg', addChatMsg);
+  socket.on('sfx', name => sfx.play(name)); // server-driven sound cues (fires for everyone)
 
   socket.on('equities', eq => { equities = eq; if (lastState) renderGame(lastState); });
   socket.on('reaction', ({ seatIndex, emoji }) => floatReaction(seatIndex, emoji));
@@ -238,7 +229,7 @@ function sendReact(e) {
 }
 function floatReaction(seatIndex, emoji) {
   const me = lastState && lastState.seats.find(s => s && s.isYou);
-  const pos = (me && me.seatIndex === seatIndex) ? { x: '50%', y: '78%' } : (SEAT_POS[seatIndex] || SEAT_POS[0]);
+  const pos = displayPos(seatIndex);
   const wrap = document.getElementById('tbets'); if (!wrap) return;
   const el = document.createElement('div');
   el.className = 'react-float'; el.textContent = emoji;
@@ -473,16 +464,19 @@ function setChips(seatIndex) {
 }
 
 // ── GAME RENDER ──
-const SEAT_POS = [
-  {x:'50%', y:'17%'},  // seat 0 — top center
-  {x:'79%', y:'24%'},  // seat 1 — top right
-  {x:'90%', y:'46%'},  // seat 2 — right
-  {x:'79%', y:'68%'},  // seat 3 — bottom right
-  {x:'50%', y:'75%'},  // seat 4 — bottom center (not used — player sits here)
-  {x:'21%', y:'68%'},  // seat 5 — bottom left
-  {x:'10%', y:'46%'},  // seat 6 — left
-  {x:'21%', y:'24%'},  // seat 7 — top left
-];
+// Seats are placed around the oval relative to YOU: you're always bottom-centre
+// (rel 0), everyone else spreads evenly around the rest of the table.
+function seatPosFor(rel, n) {
+  const ang = (90 + rel * (360 / n)) * Math.PI / 180; // 90° = bottom-centre
+  return { x: (50 + 41 * Math.cos(ang)).toFixed(1) + '%', y: (47 + 38 * Math.sin(ang)).toFixed(1) + '%' };
+}
+function displayPos(seatIndex) {
+  if (!lastState) return { x: '50%', y: '50%' };
+  const n = lastState.maxSeats || 8;
+  const me = lastState.seats.find(s => s && s.isYou);
+  const rel = me ? (seatIndex - me.seatIndex + n) % n : seatIndex;
+  return seatPosFor(rel, n);
+}
 
 function actClass(t) {
   return t.startsWith('Fold') ? 'tact-fold'
@@ -493,19 +487,23 @@ function actClass(t) {
     : t.startsWith('All') ? 'tact-allin' : '';
 }
 
-// ── PRE-ACTIONS (queue a move for when it's your turn) ──
-function renderPreActions(state, me, myTurn) {
-  const bar = document.getElementById('preaction');
-  const show = !myTurn && me && !me.folded && !state.over && state.phase === 'playing' && me.chips > 0 && !me.sittingOut;
-  bar.classList.toggle('hidden', !show);
-  if (!show) { if (pendingPre) pendingPre = null; return; }
-  ['checkfold', 'callany', 'fold'].forEach(k => document.getElementById('pre-' + k).classList.toggle('armed', pendingPre === k));
+// ── PRE-ACTIONS (press the normal buttons before your turn to queue them) ──
+function armPre(action) {
+  if (!lastState) return;
+  pendingPre = (pendingPre && pendingPre.action === action) ? null
+    : { action, betLevel: lastState.curBet };
+  renderGame(lastState); // refresh button highlight
 }
-function togglePre(k) { pendingPre = pendingPre === k ? null : k; if (lastState) renderPreActions(lastState, lastState.seats.find(s => s && s.isYou), false); }
-function firePre(pa, call) {
-  if (pa === 'fold') send('fold');
-  else if (pa === 'checkfold') send(call > 0 ? 'fold' : 'check');
-  else if (pa === 'callany') send(call > 0 ? 'call' : 'check');
+// returns true if the queued action was actually played (false = cancelled, act manually)
+function firePre(pre, call, curBet) {
+  if (pre.action === 'fold') { send('fold'); return true; }
+  if (pre.action === 'check') { if (call === 0) { send('check'); return true; } return false; }
+  if (pre.action === 'call') {
+    // cancel a pre-call if the bet grew beyond what you committed to
+    if (curBet > pre.betLevel) return false;
+    send(call > 0 ? 'call' : 'check'); return true;
+  }
+  return false;
 }
 
 // ── TURN CLOCK ──
@@ -564,7 +562,7 @@ function renderGame(state) {
   updateBlindLevel(state);
   if (!turnTick) turnTick = setInterval(updateTurnClock, 250);
   const newHand = state.handNum !== prevHandNum;
-  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; } // reset per hand
+  if (newHand) { equities = null; prevBoardLen = 0; pendingPre = null; prevHandNum = state.handNum; } // reset per hand
   if (!state.over) document.getElementById('showmuck').classList.add('hidden');
 
   // Board — newly dealt cards (flop/turn/river) get a short deal-in animation
@@ -592,10 +590,12 @@ function renderGame(state) {
   wrap.innerHTML = '';
   betWrap.innerHTML = '';
 
+  const heroIdx = me ? me.seatIndex : null;
   for (let i = 0; i < maxSeats; i++) {
     const s = state.seats[i];
-    if (s && s.isYou) continue; // hero renders at the bottom
-    const pos = SEAT_POS[i] || SEAT_POS[0];
+    const rel = heroIdx != null ? (i - heroIdx + maxSeats) % maxSeats : i;
+    if (heroIdx != null && rel === 0) continue; // your seat renders at the bottom
+    const pos = seatPosFor(rel, maxSeats);
     const seat = document.createElement('div');
     seat.style.left = pos.x;
     seat.style.top = pos.y;
@@ -659,26 +659,38 @@ function renderGame(state) {
     // action bar
     const myTurn = me.isTurn && !state.over;
     const call = Math.max(0, state.curBet - me.bet);
-    // pre-action bar shown while it's NOT your turn (and you're still in the hand)
-    renderPreActions(state, me, myTurn);
-    if (myTurn) {
-      // fire a queued pre-action if one is armed
-      if (pendingPre) { const pa = pendingPre; pendingPre = null; firePre(pa, call); document.getElementById('abar').classList.add('off'); return; }
+    const inHand = !me.folded && !me.sittingOut && state.phase === 'playing' && !state.over && me.chips > 0;
+    const abar = document.getElementById('abar');
+
+    // a queued pre-action that's no longer valid is dropped (e.g. someone bet above your pre-call)
+    if (pendingPre) {
+      if (pendingPre.action === 'check' && call > 0) pendingPre = null;
+      else if (pendingPre.action === 'call' && state.curBet > pendingPre.betLevel) pendingPre = null;
+    }
+    // fire a queued pre-action when it becomes your turn
+    if (myTurn && pendingPre) {
+      const pre = pendingPre; pendingPre = null;
+      ['btn-fold', 'btn-check', 'btn-call'].forEach(id => document.getElementById(id).classList.remove('armed'));
+      if (firePre(pre, call, state.curBet)) { abar.classList.add('off'); return; }
+      // cancelled → fall through and act manually
+    }
+
+    if (myTurn || inHand) {
+      const preMode = !myTurn;
+      abar.classList.toggle('prearm', preMode);
       const canCheck = call === 0;
 
-      // Call: enabled only when there's something to call
       const callBtn = document.getElementById('btn-call');
       setBtnEnabled(callBtn, !canCheck);
       callBtn.querySelector('.albl').textContent = canCheck ? 'Call'
         : call >= me.chips ? 'All-in ' + me.chips : 'Call ' + call;
-
-      // Check: enabled only when nothing to call
       setBtnEnabled(document.getElementById('btn-check'), canCheck);
+      setBtnEnabled(document.getElementById('btn-fold'), true);
 
-      // Raise / Bet: enabled only when the player has chips beyond the call
-      const minTotal = Math.max(state.bb, state.curBet + state.bb); // min legal total bet
-      const maxTotal = me.bet + me.chips;                          // all-in total
-      const canRaise = me.chips > call && maxTotal > state.curBet;
+      // Raise / Bet — only live on your turn (you can't pre-raise)
+      const minTotal = Math.max(state.bb, state.curBet + state.bb);
+      const maxTotal = me.bet + me.chips;
+      const canRaise = !preMode && me.chips > call && maxTotal > state.curBet;
       const raiseBtn = document.getElementById('btn-raise-open');
       raiseBtn.querySelector('.albl').textContent = state.curBet === 0 ? 'Bet' : 'Raise';
       setBtnEnabled(raiseBtn, canRaise);
@@ -689,18 +701,21 @@ function renderGame(state) {
         if (+sl.value < lo || +sl.value > maxTotal) sl.value = lo;
         raiseCtx = { pot: state.pot, curBet: state.curBet, bet: me.bet, lo, hi: maxTotal };
         onRaiseInput('slider');
-      } else {
-        raiseCtx = null;
-      }
+      } else { raiseCtx = null; }
 
-      // On a fresh turn, always start on the primary panel
-      if (!myTurnWas) showRaisePanel(false);
-      myTurnWas = true;
-      document.getElementById('abar').classList.remove('off');
+      // highlight an armed pre-action
+      const armMap = { fold: 'btn-fold', check: 'btn-check', call: 'btn-call' };
+      ['btn-fold', 'btn-check', 'btn-call'].forEach(id => document.getElementById(id).classList.remove('armed'));
+      if (preMode && pendingPre && armMap[pendingPre.action]) document.getElementById(armMap[pendingPre.action]).classList.add('armed');
+
+      if (!myTurn || !myTurnWas) showRaisePanel(false);
+      myTurnWas = myTurn;
+      abar.classList.remove('off');
     } else {
-      myTurnWas = false;
+      myTurnWas = false; pendingPre = null;
       showRaisePanel(false);
-      document.getElementById('abar').classList.add('off');
+      abar.classList.add('off');
+      abar.classList.remove('prearm');
     }
   }
 }
@@ -756,7 +771,14 @@ function setSize(frac) {
 }
 
 function send(action) {
-  if (!socket || !roomCode) return;
+  if (!socket || !roomCode || !lastState) return;
+  const me = lastState.seats.find(s => s && s.isYou);
+  const myTurn = me && me.isTurn && !lastState.over;
+  if (!myTurn) { // not your turn yet → queue it as a pre-action (raise/all-in can't be pre-armed)
+    if (action === 'raise' || action === 'allin') return;
+    armPre(action);
+    return;
+  }
   pendingPre = null;
   const amount = action === 'raise' ? +document.getElementById('rslider').value : 0;
   socket.emit('action', { code: roomCode, action, amount });
