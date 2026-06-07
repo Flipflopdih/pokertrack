@@ -72,7 +72,7 @@ const sfx = (() => {
   // a dry knuckle-knock on the table (two quick thumps) — the real "check" sound
   function knock(t0) {
     for (let k = 0; k < 2; k++) {
-      const t = t0 + k * 0.085;
+      const t = t0 + k * 0.115; // a touch more space between the two knocks
       // body thump
       const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
       o.type = 'sine'; o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.05);
@@ -681,9 +681,15 @@ function renderGame(state) {
       const canCheck = call === 0;
 
       const callBtn = document.getElementById('btn-call');
-      setBtnEnabled(callBtn, !canCheck);
-      callBtn.querySelector('.albl').textContent = canCheck ? 'Call'
-        : call >= me.chips ? 'All-in ' + me.chips : 'Call ' + call;
+      if (canCheck) {
+        // nothing to call → the Call slot becomes a one-tap Min-bet (live turn only)
+        const minBet = Math.min(Math.max(state.bb, state.curBet + state.bb), me.bet + me.chips);
+        setBtnEnabled(callBtn, !preMode && me.chips > 0);
+        callBtn.querySelector('.albl').textContent = preMode ? 'Call' : 'Bet ' + minBet;
+      } else {
+        setBtnEnabled(callBtn, true);
+        callBtn.querySelector('.albl').textContent = call >= me.chips ? 'All-in ' + me.chips : 'Call ' + call;
+      }
       setBtnEnabled(document.getElementById('btn-check'), canCheck);
       setBtnEnabled(document.getElementById('btn-fold'), true);
 
@@ -812,6 +818,16 @@ document.addEventListener('keydown', e => {
   else if (k === 'r' && enabled('btn-raise-open')) { e.preventDefault(); openRaise(); }
   else if (k === 'a' && me.chips > 0) { e.preventDefault(); send('allin'); }
 });
+
+// The Call button doubles as a one-tap min-bet when there's nothing to call.
+function callOrMinBet() {
+  const me = lastState && lastState.seats.find(s => s && s.isYou);
+  if (!me) return;
+  const call = Math.max(0, lastState.curBet - me.bet);
+  const myTurn = me.isTurn && !lastState.over;
+  if (call > 0) { send('call'); return; }      // real call (or arm a pre-call)
+  if (myTurn) minRaise();                        // no bet yet → min bet
+}
 
 // Fire an immediate minimum-legal raise/bet (no panel).
 function minRaise() {
@@ -967,6 +983,31 @@ function leakHeadline(decs) {
   return map[top] || 'Mixed leaks — review your spots';
 }
 
+// A few personalized coaching lines from your session stats.
+function coachingSummary(s) {
+  const out = [], hp = s.handsPlayed || 1;
+  const vp = Math.round((s.vpip || 0) / hp * 100);
+  const decs = s.gtoDecisions || [];
+  const raises = decs.filter(d => d.action === 'raise').length;
+  const calls = decs.filter(d => d.action === 'call').length;
+  const aggr = (raises + calls) ? Math.round(raises / (raises + calls) * 100) : 0;
+  if (vp >= 45) out.push('🎯 You play a lot of hands (' + vp + '% VPIP) — tighten up, especially in early position.');
+  else if (vp <= 16) out.push('🪨 Very tight (' + vp + '% VPIP) — you can profitably open more, especially on the button.');
+  else out.push('👍 Healthy hand selection (' + vp + '% VPIP).');
+  if (raises + calls >= 4) {
+    if (aggr <= 30) out.push('😴 Passive — you call far more than you raise (' + aggr + '% aggression). Bet your strong hands for value.');
+    else if (aggr >= 72) out.push('🔥 Very aggressive (' + aggr + '%) — make sure your bluffs have outs/backup.');
+    else out.push('⚖️ Well-balanced aggression (' + aggr + '%).');
+  }
+  let worst = null, wa = 101;
+  ['preflop', 'flop', 'turn', 'river'].forEach(st => {
+    const ds = decs.filter(d => d.street === st);
+    if (ds.length >= 2) { const a = Math.round(ds.filter(d => d.correct).length / ds.length * 100); if (a < wa) { wa = a; worst = st; } }
+  });
+  if (worst && wa < 72) out.push('🔧 Weakest street: ' + worst + ' (' + wa + '% GTO) — focus your study there.');
+  return out.slice(0, 3);
+}
+
 // circular accuracy gauge with a letter grade
 function gtoGauge(acc) {
   const grade = acc >= 85 ? 'A+' : acc >= 75 ? 'A' : acc >= 65 ? 'B' : acc >= 55 ? 'C' : acc >= 45 ? 'D' : 'F';
@@ -1018,7 +1059,8 @@ function buildPC(p) {
       + '<div class="gto-hero">' + gtoGauge(gto)
       + '<div class="gto-hero-txt"><div class="gto-grade-lbl ' + gtoCls + '">' + gtoLbl + '</div>'
       + '<div class="gto-sub">' + s.gtoDecisions.length + ' decisions analysed</div></div></div>'
-      + '<div class="leak-card">📌 <b>Leak of the night</b><br>' + leakHeadline(s.gtoDecisions) + '</div>';
+      + '<div class="leak-card">📌 <b>Leak of the night</b><br>' + leakHeadline(s.gtoDecisions) + '</div>'
+      + (coachingSummary(s).length ? '<div class="coach-sum"><div class="cs-t">📋 Coaching summary</div>' + coachingSummary(s).map(t => '<div class="cs-row">' + t + '</div>').join('') + '</div>' : '');
     // per-street accuracy
     html += '<div class="gto-streetacc">' + ['preflop','flop','turn','river'].map(st => {
       const ds = s.gtoDecisions.filter(d => d.street === st);

@@ -58,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 .btn-sm.red{border-color:rgba(231,76,60,.3);color:#e74c3c}.btn-sm.red:hover{background:rgba(231,76,60,.12)}
 
 #table-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 24px 118px}
-#table{position:relative;width:min(95vw,1600px);height:clamp(440px,min(72vh,48vw),780px);margin:0 auto;
+#table{position:relative;width:min(95vw,1600px);height:clamp(440px,min(76vh,50vw),820px);margin:0 auto;
   background:radial-gradient(ellipse 72% 74% at 50% 42%,#2a7049 0%,#1d5236 55%,#103225 100%);
   border-radius:300px/180px;border:14px solid #5c3d1e;
   box-shadow:0 0 0 5px #3a2510, 0 0 0 7px rgba(201,168,76,.28), 0 42px 90px rgba(0,0,0,.85), inset 0 3px 16px rgba(255,255,255,.05), inset 0 -14px 46px rgba(0,0,0,.45);
@@ -455,3 +455,8 @@ body{font-family:'DM Sans',sans-serif;background:#0c1a10;color:#f0ede4;min-heigh
 #abar.prearm{opacity:.92}
 #abar.prearm::before{content:'Pre-action — fires on your turn';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.04em;color:rgba(255,255,255,.45);white-space:nowrap}
 .abtn.armed{background:var(--gold)!important;color:#1a1409!important;border-color:#f0d896!important;box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(201,168,76,.5)!important}
+
+/* coaching summary card */
+.coach-sum{margin:0 0 12px;padding:11px 14px;background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.2);border-left:3px solid #2ecc71;border-radius:10px}
+.cs-t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#46d27c;font-weight:700;margin-bottom:7px}
+.cs-row{font-size:12.5px;color:rgba(240,237,228,.9);line-height:1.45;padding:3px 0}

@@ -6,7 +6,7 @@ const path = require('path');
 const engine = require('./src/engine');
 const {
   createRoom, getRoom, deleteRoom, filledSeats, seatPlayer, seatOfSocket,
-  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction
+  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction, afterAction
 } = engine;
 
 const app = express();
@@ -110,8 +110,8 @@ io.on('connection', socket => {
     const room = getRoom(code);
     if (!room || mySeat === null) return;
     if (!applyAction(room, mySeat, action, amount || 0)) return;
-    broadcast(room);
-    scheduleNext(room);
+    // a brief beat so actions (especially checks) don't blur past instantly
+    afterAction(room, action === 'check' ? 500 : action === 'fold' ? 280 : 320);
   });
 
   // sit out / come back (takes effect on the next deal)
@@ -208,12 +208,12 @@ io.on('connection', socket => {
     if (p) {
       p.connected = false;
       broadcast(room);
-      if (!room.over && room.queue[0] === mySeat) {
+      if (!room.over && !room.paused && room.queue[0] === mySeat) {
         if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
         const seat = mySeat;
         room.actionTimer = setTimeout(() => {
           const call = Math.max(0, room.curBet - p.bet);
-          if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
+          if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) afterAction(room, 320);
         }, 12000); // grace period to rejoin before auto-acting
       }
     }

@@ -28,7 +28,7 @@ function createRoom(hostName, hostSocketId, startChips, sb, bb, maxSeats, blindU
     over: true, actionTimer: null, phase: 'waiting',
     blindUpMs: Math.max(0, (blindUpMin || 0) * 60000), level: 1, nextBlindAt: 0, blindTimer: null,
     turnMs: turnSec === 0 ? 0 : Math.max(8, Math.min(120, turnSec || 30)) * 1000, // per-turn time limit (0 = off)
-    turnDeadline: 0
+    turnDeadline: 0, paused: false
   };
   return code;
 }
@@ -96,7 +96,7 @@ function seatView(room, s, i, socketId) {
     folded: s.folded, lastAction: s.lastAction, wins: s.stat.handsWon,
     sittingOut: s.sittingOut, showCards: s.showCards,
     isDealer: i === room.dealer,
-    isTurn: !room.over && room.queue[0] === i,
+    isTurn: !room.over && !room.paused && room.queue[0] === i,
     isYou: mine, cards, connected: s.connected
   };
 }
@@ -216,7 +216,7 @@ function scheduleNext(room) {
     room.actionTimer = setTimeout(() => {
       const call = Math.max(0, room.curBet - player.bet);
       // only advance if the action actually applied — guards against stale timers cascading
-      if (applyAction(room, seatIdx, call > 0 ? 'fold' : 'check')) { broadcast(room); scheduleNext(room); }
+      if (applyAction(room, seatIdx, call > 0 ? 'fold' : 'check')) afterAction(room, 450);
     }, timeoutMs);
   } else {
     room.turnDeadline = 0;
@@ -224,7 +224,21 @@ function scheduleNext(room) {
   broadcast(room);
 }
 
+// A short, watchable beat after an action before the next player can act.
+function afterAction(room, ms) {
+  if (room.over) { broadcast(room); return; }
+  room.paused = true;
+  broadcast(room);
+  if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
+  room.actionTimer = setTimeout(() => {
+    if (!rooms[room.code]) return;
+    room.paused = false;
+    scheduleNext(room);
+  }, ms);
+}
+
 function applyAction(room, seatIdx, action, raiseAmt) {
+  if (room.paused) return false; // brief beat between actions — checked before touching the timer
   if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
   if (room.over) return false;
   if (!room.queue.length || room.queue[0] !== seatIdx) return false;
@@ -470,5 +484,5 @@ function showCardsAction(room, socketId) {
 module.exports = {
   rooms, attach, createRoom, getRoom, deleteRoom, filledSeats, activePlayers,
   seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext,
-  startBlindTimer, stopBlindTimer, showCardsAction
+  startBlindTimer, stopBlindTimer, showCardsAction, afterAction
 };

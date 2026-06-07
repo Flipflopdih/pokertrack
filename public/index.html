@@ -6,7 +6,7 @@
 <title>PokerTrack</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
-<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/styles.css?v=12">
 </head>
 <body>
 <!-- shared SVG assets (gradients + card-back lattice) -->
@@ -149,7 +149,7 @@
   <div id="abar" class="off">
     <!-- Primary actions -->
     <div id="abar-main">
-      <button class="abtn call" id="btn-call" onclick="send('call')"><span class="kbd">C</span><span class="albl">Call</span></button>
+      <button class="abtn call" id="btn-call" onclick="callOrMinBet()"><span class="kbd">C</span><span class="albl">Call</span></button>
       <button class="abtn raise" id="btn-raise-open" onclick="openRaise()"><span class="kbd">R</span><span class="albl">Raise</span></button>
       <button class="abtn check" id="btn-check" onclick="send('check')"><span class="kbd">K</span><span class="albl">Check</span></button>
       <button class="abtn fold" id="btn-fold" onclick="send('fold')"><span class="kbd">F</span><span class="albl">Fold</span></button>
@@ -245,6 +245,6 @@
   </div>
 </div>
 
-<script src="/js/app.js"></script>
+<script src="/js/app.js?v=12"></script>
 </body>
 </html>
