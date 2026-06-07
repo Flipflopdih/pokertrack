@@ -1569,7 +1569,7 @@ index 0000000..d9ff0b2
 +.cs-t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#46d27c;font-weight:700;margin-bottom:7px}
 +.cs-row{font-size:12.5px;color:rgba(240,237,228,.9);line-height:1.45;padding:3px 0}
 diff --git a/public/index.html b/public/index.html
-index 0edbb13..51d0c52 100644
+index 0edbb13..b741847 100644
 --- a/public/index.html
 +++ b/public/index.html
 @@ -6,210 +6,24 @@
@@ -1778,7 +1778,7 @@ index 0edbb13..51d0c52 100644
 -#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 -#toast.show{opacity:1}
 -</style>
-+<link rel="stylesheet" href="/css/styles.css?v=12">
++<link rel="stylesheet" href="/css/styles.css?v=13">
  </head>
  <body>
 +<!-- shared SVG assets (gradients + card-back lattice) -->
@@ -2509,15 +2509,15 @@ index 0edbb13..51d0c52 100644
 -  }
 -});
 -</script>
-+<script src="/js/app.js?v=12"></script>
++<script src="/js/app.js?v=13"></script>
  </body>
  </html>
 diff --git a/public/js/app.js b/public/js/app.js
 new file mode 100644
-index 0000000..dc0bae6
+index 0000000..4e9816c
 --- /dev/null
 +++ b/public/js/app.js
-@@ -0,0 +1,1181 @@
+@@ -0,0 +1,1189 @@
 +// ── CARD DISPLAY (SVG, four-colour deck) ──
 +const SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
 +const SUIT_COL = {s:'#23262b',h:'#c0392b',d:'#2e72b8',c:'#1e8a4c'};
@@ -2568,6 +2568,8 @@ index 0000000..dc0bae6
 +let pendingPre = null, prevBoardLen = 0, turnTick = null;
 +function saveSession() { try { localStorage.setItem('pt-session', JSON.stringify({ code: roomCode, name: myName })); } catch (e) {} }
 +function clearSession() { try { localStorage.removeItem('pt-session'); } catch (e) {} }
++// stable identity so reconnects match the right seat (not by name)
++let playerId = (() => { try { let id = localStorage.getItem('pt-pid'); if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('pt-pid', id); } return id; } catch (e) { return 'pid-' + Math.random(); } })();
 +
 +// ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
 +const SOUND_FILES = { deal:'/sounds/card.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
@@ -2636,6 +2638,7 @@ index 0000000..dc0bae6
 +  socket.on('room_created', ({ code, url }) => {
 +    roomCode = code;
 +    saveSession();
++    try { history.replaceState(null, '', '/room/' + code); } catch (e) {} // a refresh keeps you in this game
 +    inviteUrl = window.location.origin + url;
 +    document.getElementById('lb-url').textContent = inviteUrl;
 +    document.getElementById('link-box').classList.add('show');
@@ -2649,6 +2652,7 @@ index 0000000..dc0bae6
 +    roomCode = code;
 +    mySeatIndex = seatIndex;
 +    saveSession();
++    try { history.replaceState(null, '', '/room/' + code); } catch (e) {}
 +    inviteUrl = window.location.origin + '/room/' + code;
 +    document.getElementById('seat-invite-url').textContent = inviteUrl;
 +    document.getElementById('seat-code').textContent = code;
@@ -2814,7 +2818,7 @@ index 0000000..dc0bae6
 +  const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
 +  const turnSec = Math.max(0, +document.getElementById('c-turn').value || 0);
 +  initSocket();
-+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec });
++  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec, playerId });
 +  document.getElementById('p-nameval').textContent = myName;
 +}
 +
@@ -2824,7 +2828,7 @@ index 0000000..dc0bae6
 +  if (!myName) { toast('Enter your name'); return; }
 +  if (!code) { toast('Enter a room code'); return; }
 +  initSocket();
-+  socket.emit('join_room', { code, name: myName });
++  socket.emit('join_room', { code, name: myName, playerId });
 +  document.getElementById('p-nameval').textContent = myName;
 +}
 +
@@ -2896,7 +2900,7 @@ index 0000000..dc0bae6
 +
 +function chooseSeat(idx) {
 +  if (!socket) { toast('Connect first'); return; }
-+  socket.emit('take_seat', { code: roomCode, seatIndex: idx, name: myName });
++  socket.emit('take_seat', { code: roomCode, seatIndex: idx, name: myName, playerId });
 +  mySeatIndex = idx;
 +}
 +
@@ -3689,14 +3693,18 @@ index 0000000..dc0bae6
 +    document.getElementById('j-code').value = m[1].toUpperCase();
 +    switchTab('join');
 +  }
-+  // Try to rejoin a session you were already in (refresh / reconnect to same seat).
++  // Auto-rejoin ONLY when you opened the actual /room/CODE link for your saved game
++  // (so the plain base URL always gives a fresh lobby, and dead links don't trap you).
 +  let sess = null;
 +  try { sess = JSON.parse(localStorage.getItem('pt-session') || 'null'); } catch (e) {}
-+  if (sess && sess.code && sess.name && (!m || m[1].toUpperCase() === sess.code)) {
++  if (m && sess && sess.code && sess.name && m[1].toUpperCase() === sess.code) {
 +    myName = sess.name; roomCode = sess.code;
 +    document.getElementById('p-nameval').textContent = myName;
 +    initSocket();
-+    socket.emit('reconnect_room', { code: sess.code, name: sess.name });
++    socket.emit('reconnect_room', { code: sess.code, name: sess.name, playerId });
++  } else if (m) {
++    // opened someone's invite link but it's not your saved game → just prefill join
++    clearSession();
 +  }
 +});
 diff --git a/public/sounds/allin.mp3 b/public/sounds/allin.mp3
@@ -3724,18 +3732,31 @@ new file mode 100644
 index 0000000..eb6788c
 Binary files /dev/null and b/public/sounds/takecard2.mp3 differ
 diff --git a/server.js b/server.js
-index acd381e..882acdb 100644
+index acd381e..26460fd 100644
 --- a/server.js
 +++ b/server.js
-@@ -3,527 +3,47 @@ const http = require('http');
+@@ -3,567 +3,192 @@ const http = require('http');
  const { Server } = require('socket.io');
  const path = require('path');
  
 +const engine = require('./src/engine');
 +const {
 +  createRoom, getRoom, deleteRoom, filledSeats, seatPlayer, seatOfSocket,
-+  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction, afterAction
++  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer,
++  showCardsAction, afterAction, seatByPlayer, anyConnected
 +} = engine;
++
++// Keep a room while someone's connected; once everyone's gone, tear it down after a grace
++// period so old invite links die and reconnects fall back to a fresh lobby.
++function touchRoom(room) { if (room && room.cleanupTimer) { clearTimeout(room.cleanupTimer); room.cleanupTimer = null; } }
++function maybeCleanupRoom(room) {
++  if (!room || anyConnected(room)) { touchRoom(room); return; }
++  if (room.cleanupTimer) return;
++  room.cleanupTimer = setTimeout(() => {
++    const r = getRoom(room.code);
++    if (r && !anyConnected(r)) { stopBlindTimer(r); if (r.actionTimer) clearTimeout(r.actionTimer); deleteRoom(r.code); }
++  }, 30000);
++}
 +
  const app = express();
  const server = http.createServer(app);
@@ -4240,12 +4261,15 @@ index acd381e..882acdb 100644
  io.on('connection', socket => {
    let myRoom = null;
    let mySeat = null;
- 
+-
 -  socket.on('create_room', ({ name, startChips, sb, bb }) => {
 -    // validate blinds
 -    if (bb < sb*2) bb = sb*2;
 -    const code = createRoom(name, socket.id, startChips||1000, sb||10, bb||20);
-+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec }) => {
+-    myRoom = code;
++  let myPid = null;
++
++  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec, playerId }) => {
 +    name = (name || '').toString().trim().slice(0, 14) || 'Host';
 +    startChips = Math.max(1, startChips || 1000);
 +    sb = Math.max(1, sb || 10);
@@ -4253,38 +4277,61 @@ index acd381e..882acdb 100644
 +    blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
 +    turnSec = turnSec === 0 ? 0 : Math.max(8, Math.min(120, +turnSec || 30));
 +    const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin, turnSec);
-     myRoom = code;
++    myRoom = code; myPid = playerId || socket.id;
      socket.join(code);
      const room = getRoom(code);
 -    // host takes seat 0
 -    seatPlayer(room, 0, name, socket.id, startChips||1000);
-+    seatPlayer(room, 0, name, socket.id, startChips); // host takes seat 0
++    room.hostPid = myPid; // remember the host by stable id so reconnects keep host
++    seatPlayer(room, 0, name, socket.id, startChips, myPid); // host takes seat 0
      mySeat = 0;
 -    socket.emit('room_created', { code, url: '/room/'+code });
 +    socket.emit('room_created', { code, url: '/room/' + code });
      broadcast(room);
    });
  
-   socket.on('join_room', ({ code, name }) => {
+-  socket.on('join_room', ({ code, name }) => {
++  socket.on('join_room', ({ code, name, playerId }) => {
      const room = getRoom(code);
      if (!room) { socket.emit('err', 'Room not found'); return; }
 -    // find first empty seat
 -    const emptyIdx = room.seats.findIndex(s=>!s);
++    touchRoom(room);
++    // already seated here (e.g. a duplicate join after reconnect)? just resume.
++    const existing = playerId && seatByPlayer(room, playerId);
++    if (existing) {
++      existing.socketId = socket.id; existing.connected = true; existing.sittingOut = false;
++      if (room.hostPid === playerId) room.hostId = socket.id; // keep host on rejoin
++      myRoom = room.code; mySeat = existing.seatIndex; myPid = playerId;
++      socket.join(room.code);
++      socket.emit('joined_room', { code: room.code, seatIndex: existing.seatIndex });
++      broadcast(room); return;
++    }
 +    name = (name || '').toString().trim().slice(0, 14) || 'Player';
 +    let emptyIdx = -1;
 +    for (let i = 0; i < room.maxSeats; i++) { if (!room.seats[i]) { emptyIdx = i; break; } }
      if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
-     myRoom = room.code;
-     mySeat = emptyIdx;
-@@ -535,35 +55,115 @@ io.on('connection', socket => {
+-    myRoom = room.code;
+-    mySeat = emptyIdx;
++    myRoom = room.code; mySeat = emptyIdx; myPid = playerId || socket.id;
+     socket.join(room.code);
+-    seatPlayer(room, emptyIdx, name, socket.id, room.startChips);
++    seatPlayer(room, emptyIdx, name, socket.id, room.startChips, myPid);
+     socket.emit('joined_room', { code: room.code, seatIndex: emptyIdx });
+     broadcast(room);
+   });
  
-   socket.on('take_seat', ({ code, seatIndex, name }) => {
+-  socket.on('take_seat', ({ code, seatIndex, name }) => {
++  socket.on('take_seat', ({ code, seatIndex, name, playerId }) => {
      const room = getRoom(code);
 -    if (!room || room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
+-    myRoom = room.code;
+-    mySeat = seatIndex;
 +    if (!room) { socket.emit('err', 'Room not found'); return; }
 +    if (seatIndex < 0 || seatIndex >= room.maxSeats) return;
 +    if (room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
 +    if (room.phase === 'playing' && !room.over) { socket.emit('err', 'Wait for the hand to finish'); return; }
++    touchRoom(room);
 +
 +    const existingIdx = seatOfSocket(room, socket.id);
 +    if (existingIdx !== -1) {
@@ -4295,10 +4342,9 @@ index acd381e..882acdb 100644
 +      room.seats[existingIdx] = null;
 +      if (room.dealer === existingIdx) room.dealer = seatIndex;
 +    } else {
-+      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips);
++      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips, playerId || socket.id);
 +    }
-     myRoom = room.code;
-     mySeat = seatIndex;
++    myRoom = room.code; mySeat = seatIndex; myPid = playerId || socket.id;
      socket.join(room.code);
 -    seatPlayer(room, seatIndex, name, socket.id, room.startChips);
      socket.emit('joined_room', { code: room.code, seatIndex });
@@ -4398,7 +4444,7 @@ index acd381e..882acdb 100644
      room.sb = sb;
      room.bb = bb;
      if (startChips) room.startChips = startChips;
-@@ -583,12 +183,21 @@ io.on('connection', socket => {
+@@ -583,12 +208,21 @@ io.on('connection', socket => {
      if (!room) return;
      room.over = true;
      if (room.actionTimer) clearTimeout(room.actionTimer);
@@ -4426,9 +4472,15 @@ index acd381e..882acdb 100644
    });
  
    socket.on('disconnect', () => {
-@@ -599,28 +208,35 @@ io.on('connection', socket => {
-     if (p) {
+@@ -596,31 +230,43 @@ io.on('connection', socket => {
+     const room = getRoom(myRoom);
+     if (!room) return;
+     const p = room.seats[mySeat];
+-    if (p) {
++    // Ignore if this player already reconnected on a newer socket (race on refresh).
++    if (p && p.socketId === socket.id) {
        p.connected = false;
++      p.sittingOut = true; // go "offline" → auto sit out next hand so the table doesn't wait on you
        broadcast(room);
 -      // If it's their turn, auto-fold after 10s
 -      if (room.queue[0] === mySeat) {
@@ -4442,14 +4494,16 @@ index acd381e..882acdb 100644
 -        }, 10000);
 +          const call = Math.max(0, room.curBet - p.bet);
 +          if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) afterAction(room, 320);
-+        }, 12000); // grace period to rejoin before auto-acting
++        }, 12000); // grace period to rejoin before auto-acting on the current hand
        }
      }
 -  });                                          
++    maybeCleanupRoom(room); // if everyone's gone, the room (and its link) dies after a grace period
 +  });
  
-+  // Rejoin your existing seat after a refresh/disconnect.
-   socket.on('reconnect_room', ({ code, name }) => {
+-  socket.on('reconnect_room', ({ code, name }) => {
++  // Rejoin your existing seat after a refresh/disconnect (matched by stable player id).
++  socket.on('reconnect_room', ({ code, name, playerId }) => {
      const room = getRoom(code);
 -    if (!room) return;
 -    const p = filledSeats(room).find(p=>p.name===name);
@@ -4461,18 +4515,20 @@ index acd381e..882acdb 100644
 -      socket.join(code);
 -      socket.emit('state', buildView(room, socket.id));
 +    if (!room) { socket.emit('reconnect_failed'); return; }
-+    const p = filledSeats(room).find(p => p.name === name);
++    let p = (playerId && seatByPlayer(room, playerId)) || filledSeats(room).find(s => s.name === name);
 +    if (!p) { socket.emit('reconnect_failed'); return; }
++    touchRoom(room);
 +    p.socketId = socket.id;
 +    p.connected = true;
-+    mySeat = p.seatIndex;
-+    myRoom = room.code;
++    p.sittingOut = false; // back online → rejoin the action next hand
++    if (playerId) p.playerId = playerId;
++    if (room.hostPid && room.hostPid === p.playerId) room.hostId = socket.id; // restore host
++    mySeat = p.seatIndex; myRoom = room.code; myPid = p.playerId;
 +    socket.join(room.code);
 +    socket.emit('joined_room', { code: room.code, seatIndex: p.seatIndex });
-+    // if we came back on our own turn, restart the action clock for us
-+    if (!room.over && room.queue[0] === p.seatIndex) {
++    if (!room.over && !room.paused && room.queue[0] === p.seatIndex) {
 +      if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
-+      scheduleNext(room);
++      scheduleNext(room); // it's our turn again — restart the clock
 +    } else {
 +      broadcast(room);
      }
@@ -4610,10 +4666,10 @@ index 0000000..5c7b63f
 +module.exports = { RANKS, SUITS, RV, makeDeck, shuffle, combos, isStraight, eval5, evalBest, cmpE, score7 };
 diff --git a/src/engine.js b/src/engine.js
 new file mode 100644
-index 0000000..d3ca76c
+index 0000000..72fc19e
 --- /dev/null
 +++ b/src/engine.js
-@@ -0,0 +1,488 @@
+@@ -0,0 +1,490 @@
 +// ── Game engine: rooms, dealing, betting, showdown, side pots ──
 +const { RV, makeDeck, shuffle, evalBest, cmpE } = require('./cards');
 +const { pfStr, chenScore, posLabel, monteCarloEquity, scoreGTO, comboLabel, equityVsKnown, showdownEquities } = require('./gto');
@@ -4669,14 +4725,16 @@ index 0000000..d3ca76c
 +function activePlayers(room) { return room.seats.filter(s => s && !s.folded); }
 +function seatOfSocket(room, socketId) { return room.seats.findIndex(s => s && s.socketId === socketId); }
 +
-+function seatPlayer(room, seatIndex, name, socketId, chips) {
++function seatPlayer(room, seatIndex, name, socketId, chips, playerId) {
 +  room.seats[seatIndex] = {
-+    id: socketId, name, socketId, chips, stat: mkStat(chips),
++    id: socketId, name, socketId, playerId: playerId || socketId, chips, stat: mkStat(chips),
 +    cards: [], bet: 0, committed: 0, folded: false,
 +    lastAction: '', seatIndex, curPF: null, connected: true,
 +    sawFlop: false, pfAction: null, sittingOut: false, showCards: false, rigged: false
 +  };
 +}
++function seatByPlayer(room, playerId) { return room.seats.find(s => s && s.playerId === playerId); }
++function anyConnected(room) { return room.seats.some(s => s && s.connected); }
 +
 +// Move chips into the pot, tracking total commitment for side pots.
 +function commit(room, p, amt) {
@@ -5100,7 +5158,7 @@ index 0000000..d3ca76c
 +module.exports = {
 +  rooms, attach, createRoom, getRoom, deleteRoom, filledSeats, activePlayers,
 +  seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext,
-+  startBlindTimer, stopBlindTimer, showCardsAction, afterAction
++  startBlindTimer, stopBlindTimer, showCardsAction, afterAction, seatByPlayer, anyConnected
 +};
 diff --git a/src/gto.js b/src/gto.js
 new file mode 100644

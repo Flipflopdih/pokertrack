@@ -48,6 +48,8 @@ let equities = null, blindTick = null, isSpectator = false;
 let pendingPre = null, prevBoardLen = 0, turnTick = null;
 function saveSession() { try { localStorage.setItem('pt-session', JSON.stringify({ code: roomCode, name: myName })); } catch (e) {} }
 function clearSession() { try { localStorage.removeItem('pt-session'); } catch (e) {} }
+// stable identity so reconnects match the right seat (not by name)
+let playerId = (() => { try { let id = localStorage.getItem('pt-pid'); if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('pt-pid', id); } return id; } catch (e) { return 'pid-' + Math.random(); } })();
 
 // ── SOUND (real samples via Web Audio, low-latency + overlapping) ──
 const SOUND_FILES = { deal:'/sounds/card.mp3', call:'/sounds/chips1.mp3', raise:'/sounds/chips2.mp3', fold:'/sounds/takecard.mp3', allin:'/sounds/allin.mp3' };
@@ -116,6 +118,7 @@ function initSocket() {
   socket.on('room_created', ({ code, url }) => {
     roomCode = code;
     saveSession();
+    try { history.replaceState(null, '', '/room/' + code); } catch (e) {} // a refresh keeps you in this game
     inviteUrl = window.location.origin + url;
     document.getElementById('lb-url').textContent = inviteUrl;
     document.getElementById('link-box').classList.add('show');
@@ -129,6 +132,7 @@ function initSocket() {
     roomCode = code;
     mySeatIndex = seatIndex;
     saveSession();
+    try { history.replaceState(null, '', '/room/' + code); } catch (e) {}
     inviteUrl = window.location.origin + '/room/' + code;
     document.getElementById('seat-invite-url').textContent = inviteUrl;
     document.getElementById('seat-code').textContent = code;
@@ -294,7 +298,7 @@ function createRoom() {
   const blindUpMin = Math.max(0, +document.getElementById('c-blindup').value || 0);
   const turnSec = Math.max(0, +document.getElementById('c-turn').value || 0);
   initSocket();
-  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec });
+  socket.emit('create_room', { name: myName, startChips: chips, sb, bb, maxSeats, blindUpMin, turnSec, playerId });
   document.getElementById('p-nameval').textContent = myName;
 }
 
@@ -304,7 +308,7 @@ function joinRoom() {
   if (!myName) { toast('Enter your name'); return; }
   if (!code) { toast('Enter a room code'); return; }
   initSocket();
-  socket.emit('join_room', { code, name: myName });
+  socket.emit('join_room', { code, name: myName, playerId });
   document.getElementById('p-nameval').textContent = myName;
 }
 
@@ -376,7 +380,7 @@ function renderSeatChooser(state) {
 
 function chooseSeat(idx) {
   if (!socket) { toast('Connect first'); return; }
-  socket.emit('take_seat', { code: roomCode, seatIndex: idx, name: myName });
+  socket.emit('take_seat', { code: roomCode, seatIndex: idx, name: myName, playerId });
   mySeatIndex = idx;
 }
 
@@ -1169,13 +1173,17 @@ window.addEventListener('load', () => {
     document.getElementById('j-code').value = m[1].toUpperCase();
     switchTab('join');
   }
-  // Try to rejoin a session you were already in (refresh / reconnect to same seat).
+  // Auto-rejoin ONLY when you opened the actual /room/CODE link for your saved game
+  // (so the plain base URL always gives a fresh lobby, and dead links don't trap you).
   let sess = null;
   try { sess = JSON.parse(localStorage.getItem('pt-session') || 'null'); } catch (e) {}
-  if (sess && sess.code && sess.name && (!m || m[1].toUpperCase() === sess.code)) {
+  if (m && sess && sess.code && sess.name && m[1].toUpperCase() === sess.code) {
     myName = sess.name; roomCode = sess.code;
     document.getElementById('p-nameval').textContent = myName;
     initSocket();
-    socket.emit('reconnect_room', { code: sess.code, name: sess.name });
+    socket.emit('reconnect_room', { code: sess.code, name: sess.name, playerId });
+  } else if (m) {
+    // opened someone's invite link but it's not your saved game → just prefill join
+    clearSession();
   }
 });

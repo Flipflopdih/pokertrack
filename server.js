@@ -6,8 +6,21 @@ const path = require('path');
 const engine = require('./src/engine');
 const {
   createRoom, getRoom, deleteRoom, filledSeats, seatPlayer, seatOfSocket,
-  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer, showCardsAction, afterAction
+  broadcast, buildView, dealHand, applyAction, scheduleNext, startBlindTimer, stopBlindTimer,
+  showCardsAction, afterAction, seatByPlayer, anyConnected
 } = engine;
+
+// Keep a room while someone's connected; once everyone's gone, tear it down after a grace
+// period so old invite links die and reconnects fall back to a fresh lobby.
+function touchRoom(room) { if (room && room.cleanupTimer) { clearTimeout(room.cleanupTimer); room.cleanupTimer = null; } }
+function maybeCleanupRoom(room) {
+  if (!room || anyConnected(room)) { touchRoom(room); return; }
+  if (room.cleanupTimer) return;
+  room.cleanupTimer = setTimeout(() => {
+    const r = getRoom(room.code);
+    if (r && !anyConnected(r)) { stopBlindTimer(r); if (r.actionTimer) clearTimeout(r.actionTimer); deleteRoom(r.code); }
+  }, 30000);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -20,8 +33,9 @@ app.get('/room/:code', (req, res) => res.sendFile(path.join(__dirname, 'public',
 io.on('connection', socket => {
   let myRoom = null;
   let mySeat = null;
+  let myPid = null;
 
-  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec }) => {
+  socket.on('create_room', ({ name, startChips, sb, bb, maxSeats, blindUpMin, turnSec, playerId }) => {
     name = (name || '').toString().trim().slice(0, 14) || 'Host';
     startChips = Math.max(1, startChips || 1000);
     sb = Math.max(1, sb || 10);
@@ -29,36 +43,48 @@ io.on('connection', socket => {
     blindUpMin = Math.max(0, Math.min(120, +blindUpMin || 0));
     turnSec = turnSec === 0 ? 0 : Math.max(8, Math.min(120, +turnSec || 30));
     const code = createRoom(name, socket.id, startChips, sb, bb, maxSeats, blindUpMin, turnSec);
-    myRoom = code;
+    myRoom = code; myPid = playerId || socket.id;
     socket.join(code);
     const room = getRoom(code);
-    seatPlayer(room, 0, name, socket.id, startChips); // host takes seat 0
+    room.hostPid = myPid; // remember the host by stable id so reconnects keep host
+    seatPlayer(room, 0, name, socket.id, startChips, myPid); // host takes seat 0
     mySeat = 0;
     socket.emit('room_created', { code, url: '/room/' + code });
     broadcast(room);
   });
 
-  socket.on('join_room', ({ code, name }) => {
+  socket.on('join_room', ({ code, name, playerId }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('err', 'Room not found'); return; }
+    touchRoom(room);
+    // already seated here (e.g. a duplicate join after reconnect)? just resume.
+    const existing = playerId && seatByPlayer(room, playerId);
+    if (existing) {
+      existing.socketId = socket.id; existing.connected = true; existing.sittingOut = false;
+      if (room.hostPid === playerId) room.hostId = socket.id; // keep host on rejoin
+      myRoom = room.code; mySeat = existing.seatIndex; myPid = playerId;
+      socket.join(room.code);
+      socket.emit('joined_room', { code: room.code, seatIndex: existing.seatIndex });
+      broadcast(room); return;
+    }
     name = (name || '').toString().trim().slice(0, 14) || 'Player';
     let emptyIdx = -1;
     for (let i = 0; i < room.maxSeats; i++) { if (!room.seats[i]) { emptyIdx = i; break; } }
     if (emptyIdx === -1) { socket.emit('err', 'Room is full'); return; }
-    myRoom = room.code;
-    mySeat = emptyIdx;
+    myRoom = room.code; mySeat = emptyIdx; myPid = playerId || socket.id;
     socket.join(room.code);
-    seatPlayer(room, emptyIdx, name, socket.id, room.startChips);
+    seatPlayer(room, emptyIdx, name, socket.id, room.startChips, myPid);
     socket.emit('joined_room', { code: room.code, seatIndex: emptyIdx });
     broadcast(room);
   });
 
-  socket.on('take_seat', ({ code, seatIndex, name }) => {
+  socket.on('take_seat', ({ code, seatIndex, name, playerId }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('err', 'Room not found'); return; }
     if (seatIndex < 0 || seatIndex >= room.maxSeats) return;
     if (room.seats[seatIndex]) { socket.emit('err', 'Seat taken'); return; }
     if (room.phase === 'playing' && !room.over) { socket.emit('err', 'Wait for the hand to finish'); return; }
+    touchRoom(room);
 
     const existingIdx = seatOfSocket(room, socket.id);
     if (existingIdx !== -1) {
@@ -69,10 +95,9 @@ io.on('connection', socket => {
       room.seats[existingIdx] = null;
       if (room.dealer === existingIdx) room.dealer = seatIndex;
     } else {
-      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips);
+      seatPlayer(room, seatIndex, (name || '').toString().trim().slice(0, 14) || 'Player', socket.id, room.startChips, playerId || socket.id);
     }
-    myRoom = room.code;
-    mySeat = seatIndex;
+    myRoom = room.code; mySeat = seatIndex; myPid = playerId || socket.id;
     socket.join(room.code);
     socket.emit('joined_room', { code: room.code, seatIndex });
     broadcast(room);
@@ -205,8 +230,10 @@ io.on('connection', socket => {
     const room = getRoom(myRoom);
     if (!room) return;
     const p = room.seats[mySeat];
-    if (p) {
+    // Ignore if this player already reconnected on a newer socket (race on refresh).
+    if (p && p.socketId === socket.id) {
       p.connected = false;
+      p.sittingOut = true; // go "offline" → auto sit out next hand so the table doesn't wait on you
       broadcast(room);
       if (!room.over && !room.paused && room.queue[0] === mySeat) {
         if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
@@ -214,27 +241,30 @@ io.on('connection', socket => {
         room.actionTimer = setTimeout(() => {
           const call = Math.max(0, room.curBet - p.bet);
           if (applyAction(room, seat, call > 0 ? 'fold' : 'check')) afterAction(room, 320);
-        }, 12000); // grace period to rejoin before auto-acting
+        }, 12000); // grace period to rejoin before auto-acting on the current hand
       }
     }
+    maybeCleanupRoom(room); // if everyone's gone, the room (and its link) dies after a grace period
   });
 
-  // Rejoin your existing seat after a refresh/disconnect.
-  socket.on('reconnect_room', ({ code, name }) => {
+  // Rejoin your existing seat after a refresh/disconnect (matched by stable player id).
+  socket.on('reconnect_room', ({ code, name, playerId }) => {
     const room = getRoom(code);
     if (!room) { socket.emit('reconnect_failed'); return; }
-    const p = filledSeats(room).find(p => p.name === name);
+    let p = (playerId && seatByPlayer(room, playerId)) || filledSeats(room).find(s => s.name === name);
     if (!p) { socket.emit('reconnect_failed'); return; }
+    touchRoom(room);
     p.socketId = socket.id;
     p.connected = true;
-    mySeat = p.seatIndex;
-    myRoom = room.code;
+    p.sittingOut = false; // back online → rejoin the action next hand
+    if (playerId) p.playerId = playerId;
+    if (room.hostPid && room.hostPid === p.playerId) room.hostId = socket.id; // restore host
+    mySeat = p.seatIndex; myRoom = room.code; myPid = p.playerId;
     socket.join(room.code);
     socket.emit('joined_room', { code: room.code, seatIndex: p.seatIndex });
-    // if we came back on our own turn, restart the action clock for us
-    if (!room.over && room.queue[0] === p.seatIndex) {
+    if (!room.over && !room.paused && room.queue[0] === p.seatIndex) {
       if (room.actionTimer) { clearTimeout(room.actionTimer); room.actionTimer = null; }
-      scheduleNext(room);
+      scheduleNext(room); // it's our turn again — restart the clock
     } else {
       broadcast(room);
     }

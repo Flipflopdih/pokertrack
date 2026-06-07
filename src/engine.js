@@ -53,14 +53,16 @@ function filledSeats(room) { return room.seats.filter(Boolean); }
 function activePlayers(room) { return room.seats.filter(s => s && !s.folded); }
 function seatOfSocket(room, socketId) { return room.seats.findIndex(s => s && s.socketId === socketId); }
 
-function seatPlayer(room, seatIndex, name, socketId, chips) {
+function seatPlayer(room, seatIndex, name, socketId, chips, playerId) {
   room.seats[seatIndex] = {
-    id: socketId, name, socketId, chips, stat: mkStat(chips),
+    id: socketId, name, socketId, playerId: playerId || socketId, chips, stat: mkStat(chips),
     cards: [], bet: 0, committed: 0, folded: false,
     lastAction: '', seatIndex, curPF: null, connected: true,
     sawFlop: false, pfAction: null, sittingOut: false, showCards: false, rigged: false
   };
 }
+function seatByPlayer(room, playerId) { return room.seats.find(s => s && s.playerId === playerId); }
+function anyConnected(room) { return room.seats.some(s => s && s.connected); }
 
 // Move chips into the pot, tracking total commitment for side pots.
 function commit(room, p, amt) {
@@ -484,5 +486,5 @@ function showCardsAction(room, socketId) {
 module.exports = {
   rooms, attach, createRoom, getRoom, deleteRoom, filledSeats, activePlayers,
   seatPlayer, seatOfSocket, broadcast, buildView, dealHand, applyAction, scheduleNext,
-  startBlindTimer, stopBlindTimer, showCardsAction, afterAction
+  startBlindTimer, stopBlindTimer, showCardsAction, afterAction, seatByPlayer, anyConnected
 };
